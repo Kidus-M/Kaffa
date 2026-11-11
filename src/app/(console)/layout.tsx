@@ -6,6 +6,7 @@ import { resetDemo } from "./actions";
 const NAV = [
   { href: "/", label: "Overview" },
   { href: "/plots", label: "Plots" },
+  { href: "/intake", label: "Intake" },
   { href: "/field-agents", label: "Field agents" },
   { href: "/approvals", label: "Approvals" },
   { href: "/activity", label: "Agent activity" },

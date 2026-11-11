@@ -45,3 +45,10 @@ A fresh reviewer checked the whole branch. Each fix below has a test that failed
 - Minor, deferred: a status change and its ledger entry are written in separate transactions.
 - Minor, deferred: approving a `review_photo` approval does not itself accept the review; the exporter accepts on the plot page.
 - Minor, deferred: the daily message cap counts acknowledgement messages too.
+
+## Intake (Tier 1, task 13)
+
+- **Spreadsheets are read without AI; photos go to Gemini.** Excel and CSV cells are typed data, so they get full confidence; only a non-number where a number belongs gets zero. Photos are transcribed by Gemini with a confidence per field, told to copy rather than guess and to treat the image as data.
+- **A row becomes a plot only if every field is at least 80% certain and farmer, area and coordinates are present.** Everything else waits on the Intake page, where a person corrects or rejects it. Corrected values count as certain. Cost if wrong: more rows to check by hand, never a silently wrong plot.
+- **New plots go to the cooperative's field agent with the fewest plots,** take the cooperative's next reference number, and keep Amharic names in Ge'ez script.
+- **Fixed (found while verifying intake): the local database existed twice in one server process.** Next.js bundles route handlers and pages separately, so module-level singletons are not shared; uploads, Telegram replies and Mini App walks wrote to one in-memory PGlite and the console read another. The database now lives on `globalThis`. Production on Neon was not affected.

@@ -18,6 +18,12 @@ export function describeEvent(type: string, payload: unknown): string {
       return `Lot ${p.lotRef} held by ${(p.heldBy as string[]).join(", ") || "its plots"}.`;
     case "lot.plot_removed":
       return `${p.plotRef} removed from lot ${p.lotRef}: "${p.reason}".`;
+    case "intake.batch_received":
+      return `Register ${p.fileName} read: ${(p.created as string[]).length} plots created, ${p.review} rows to review.`;
+    case "intake.row_accepted":
+      return `Register row corrected and added as ${p.plotRef}.`;
+    case "intake.row_rejected":
+      return "A register row was rejected.";
     case "lot.ready":
       return `Lot ${p.lotRef} is ready to ship.`;
     case "chase.sent":

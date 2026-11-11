@@ -15,7 +15,7 @@ export async function createPgliteDb(dataDir?: string): Promise<Db> {
   const { PGlite } = await import("@electric-sql/pglite");
   const { drizzle } = await import("drizzle-orm/pglite");
   const { migrate } = await import("drizzle-orm/pglite/migrator");
-  if (dataDir) (await import("node:fs")).mkdirSync(dataDir, { recursive: true });
+  if (dataDir && !dataDir.includes("://")) (await import("node:fs")).mkdirSync(dataDir, { recursive: true });
   const db = drizzle({ client: new PGlite(dataDir), schema });
   await migrate(db, { migrationsFolder });
   return db as unknown as Db;
@@ -27,14 +27,19 @@ async function createNeonDb(url: string): Promise<Db> {
   return drizzle({ client: new Pool({ connectionString: url }), schema }) as unknown as Db;
 }
 
-let shared: Promise<Db> | undefined;
+/**
+ * Next.js bundles route handlers and pages separately, so this module can load more than
+ * once per server process. The database lives on globalThis so every copy shares it; two
+ * PGlite instances on one data folder would each see only their own writes.
+ */
+const store = globalThis as unknown as { __kaffaDb?: Promise<Db> };
 
 /** The app's database. Neon migrations run from `npm run db:migrate`, not on request. */
 export function getDb(): Promise<Db> {
-  shared ??= process.env.DATABASE_URL
+  store.__kaffaDb ??= process.env.DATABASE_URL
     ? createNeonDb(process.env.DATABASE_URL)
-    : createPgliteDb(path.join(process.cwd(), ".data", "pglite"));
-  return shared;
+    : createPgliteDb(process.env.PGLITE_DIR || path.join(process.cwd(), ".data", "pglite"));
+  return store.__kaffaDb;
 }
 
 export { schema };

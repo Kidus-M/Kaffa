@@ -8,6 +8,7 @@ import { approvals, gaps, plots } from "@/db/schema";
 import { seedDemo } from "@/db/seed";
 import { sendChase } from "@/services/chase";
 import { getAppDeps } from "@/services/deps";
+import { resolveIntakeRow, type IntakeCorrection } from "@/services/intake";
 import { acceptReviewPlot, removePlotFromLot } from "@/services/plots";
 import { EVENTS } from "@/workflows/events";
 import { consoleContext } from "@/lib/console";
@@ -98,4 +99,39 @@ export async function resetDemo(): Promise<void> {
 
 export async function runChecksAction(_prev: ActionState, _form: FormData): Promise<ActionState> {
   return runChecks();
+}
+
+/** A person corrects or rejects a register row the intake agent was unsure about. */
+export async function resolveIntake(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const rowId = String(form.get("rowId") ?? "");
+  if (!rowId) return { ok: false, message: "Missing row." };
+  const decision = form.get("decision") === "reject" ? "reject" : "accept";
+  const values: IntakeCorrection = {};
+  const str = (k: "farmerName" | "village" | "phone") => {
+    if (!form.has(k)) return;
+    const v = String(form.get(k)).trim();
+    if (k === "farmerName") values.farmerName = v;
+    else values[k] = v === "" ? null : v;
+  };
+  const num = (k: "areaHa" | "lat" | "lon") => {
+    if (!form.has(k)) return;
+    const v = String(form.get(k)).trim();
+    const n = Number(v);
+    values[k] = v === "" || !Number.isFinite(n) ? null : n;
+  };
+  str("farmerName");
+  str("village");
+  str("phone");
+  num("areaHa");
+  num("lat");
+  num("lon");
+
+  const { orgId } = await consoleContext();
+  const deps = await getAppDeps();
+  const result = await resolveIntakeRow(deps.db, { orgId, rowId, decision, values });
+  if (result.ok && "plotId" in result && result.valid) {
+    await deps.emit({ name: EVENTS.plotScreenRequested, data: { orgId, plotId: result.plotId } });
+  }
+  revalidatePath("/", "layout");
+  return { ok: result.ok, message: result.message };
 }
