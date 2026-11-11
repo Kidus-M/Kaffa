@@ -31,16 +31,17 @@ See [.env.example](.env.example) for the full list.
 
 1. **Overview:** each shipment shows its plots as coloured tiles. Run today's checks and watch them fill in.
 2. **Plots:** select a plot to see each satellite source's verdict, the rule that decided its status, and 2020 versus 2025 imagery.
-3. **Field app:** open `/field` on a phone-sized window, continue as Dawit, and simulate walking KNG-011, a 6 ha farm recorded as a single point. It becomes a valid boundary and is re-screened.
-4. **Buyer portal:** from a shipment card, open the buyer's view and download the EU GeoJSON and the due diligence data sheet.
-5. **Agent activity:** every agent run, step by step.
+3. **Intake:** upload `public/samples/konga-register.csv` (or download it from the Intake page). Four rows become plots, one with an Amharic name and one flagged for swapped coordinates; the row with "about one" as its area waits for you to correct.
+4. **Field app:** open `/field` on a phone-sized window, continue as Dawit, and simulate walking KNG-011, a 6 ha farm recorded as a single point. It becomes a valid boundary and is re-screened.
+5. **Buyer portal:** from a shipment card, open the buyer's view and download the EU GeoJSON and the due diligence data sheet.
+6. **Agent activity:** every agent run, step by step.
 
 ## How it is built
 
 ```
 src/domain        Pure rules: geometry, status, lots, EU export, forecast, ledger (no I/O)
 src/integrations  Thin clients: Global Forest Watch, Gemini, Telegram
-src/agents        Field liaison: chase messages and reply reading
+src/agents        Intake (registers) and field liaison (chase messages, reply reading)
 src/services      Screening, chasing, field inbound, Mini App, exports
 src/workflows     Inngest durable workflows: screening, the chase loop, the daily run
 src/db            Drizzle schema, ledger-backed event writer, synthetic seed
@@ -58,7 +59,7 @@ src/app           Console, buyer portal, Mini App, API routes
 npm test
 ```
 
-121 tests cover the EUDR geometry rules (including holes, figure-eight shapes, 6-decimal truncation and swapped coordinates), status and lot rules, the EU export format, the forecast, the ledger, Telegram signature checks, the chase workflow, and database-backed services on an in-memory Postgres.
+146 tests cover the EUDR geometry rules (including holes, figure-eight shapes, 6-decimal truncation and swapped coordinates), status and lot rules, the EU export format, register intake from Excel, CSV and photos, the forecast, the ledger, Telegram signature checks, the chase workflow, and database-backed services on an in-memory Postgres.
 
 ## Deploy
 
