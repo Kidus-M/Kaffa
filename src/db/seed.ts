@@ -19,7 +19,7 @@ import {
 const DAY_MS = 86_400_000;
 const ORG_TABLES = [
   s.cooperatives, s.fieldAgents, s.farmers, s.plots, s.checks, s.shipments, s.lots,
-  s.gaps, s.messages, s.approvals, s.ledgerEntries, s.agentRuns,
+  s.gaps, s.messages, s.approvals, s.ledgerEntries, s.agentRuns, s.intakeBatches, s.intakeRows,
 ] as const;
 
 function agentFor(ref: string): string {

@@ -240,3 +240,33 @@ export const processedUpdates = pgTable("processed_updates", {
   updateId: bigint("update_id", { mode: "number" }).primaryKey(),
   processedAt: createdAt(),
 });
+
+/** One uploaded register: a spreadsheet or a photo of a paper ledger. */
+export const intakeBatches = pgTable("intake_batches", {
+  id: id(),
+  orgId: orgId(),
+  cooperativeId: text("cooperative_id").notNull(),
+  source: text("source", { enum: ["spreadsheet", "photo"] }).notNull(),
+  fileName: text("file_name").notNull(),
+  rowCount: integer("row_count").notNull(),
+  createdCount: integer("created_count").notNull(),
+  reviewCount: integer("review_count").notNull(),
+  createdAt: createdAt(),
+});
+
+/** Every row read from a register. Uncertain rows wait here for a person. */
+export const intakeRows = pgTable(
+  "intake_rows",
+  {
+    id: id(),
+    orgId: orgId(),
+    batchId: text("batch_id").notNull(),
+    idx: integer("idx").notNull(),
+    data: jsonb("data").notNull(),
+    reviewFields: jsonb("review_fields").$type<string[]>().notNull().default([]),
+    status: text("status", { enum: ["pending", "accepted", "rejected"] }).notNull(),
+    plotId: text("plot_id"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("intake_rows_batch").on(t.batchId), index("intake_rows_status").on(t.orgId, t.status)],
+);
