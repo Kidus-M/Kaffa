@@ -6,6 +6,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { recordEvent } from "@/db/events";
 import { farmers, fieldAgents, gaps, plots } from "@/db/schema";
+import { DEMO_ORG_ID } from "@/db/seed-data";
 import { repairPlot } from "@/domain/geometry";
 import type { PlotGeometry } from "@/domain/types";
 import { walkToPolygon, type WalkPoint } from "@/domain/walk";
@@ -16,23 +17,35 @@ import { recapturePlot } from "./plots";
 type Agent = typeof fieldAgents.$inferSelect;
 
 /**
+ * Demo mode lets a picker act as a synthetic field agent without Telegram. It is on in
+ * development, and in production only when DEMO_MODE=1 is set deliberately.
+ */
+export function demoModeEnabled(source: Record<string, string | undefined> = process.env): boolean {
+  return source.NODE_ENV !== "production" || source.DEMO_MODE === "1";
+}
+
+/**
  * With a bot token configured, only Telegram-signed init data identifies a field agent.
- * Without one (local demo), a picker can choose a field agent, and the UI says so.
+ * Without one, the demo picker works only in demo mode and only for synthetic agents
+ * in the demo organisation, so a misconfigured deployment fails closed.
  */
 export async function resolveFieldAgent(
   db: Db,
   body: { initData?: string; demoAgentId?: string },
-  botToken: string | undefined,
+  opts: { botToken: string | undefined; demoMode: boolean },
 ): Promise<Agent | null> {
-  if (botToken) {
+  if (opts.botToken) {
     if (!body.initData) return null;
-    const v = verifyInitData(body.initData, botToken);
+    const v = verifyInitData(body.initData, opts.botToken);
     if (!v.ok) return null;
     const [agent] = await db.select().from(fieldAgents).where(eq(fieldAgents.telegramChatId, v.userId));
     return agent ?? null;
   }
-  if (!body.demoAgentId) return null;
-  const [agent] = await db.select().from(fieldAgents).where(eq(fieldAgents.id, body.demoAgentId));
+  if (!opts.demoMode || !body.demoAgentId) return null;
+  const [agent] = await db
+    .select()
+    .from(fieldAgents)
+    .where(and(eq(fieldAgents.id, body.demoAgentId), eq(fieldAgents.synthetic, true), eq(fieldAgents.orgId, DEMO_ORG_ID)));
   return agent ?? null;
 }
 

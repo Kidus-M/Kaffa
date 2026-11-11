@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { createPgliteDb, type Db } from "@/db/client";
 import { fieldAgents, gaps, plots } from "@/db/schema";
 import { seedDemo } from "@/db/seed";
-import { fieldTasks, resolveFieldAgent, submitWalk } from "./field-app";
+import { demoModeEnabled, fieldTasks, resolveFieldAgent, submitWalk } from "./field-app";
 
 let db: Db;
 const events: { name: string }[] = [];
@@ -31,13 +31,30 @@ function walk([lon, lat]: [number, number], sideM: number) {
 }
 
 describe("resolveFieldAgent", () => {
-  it("allows the demo picker only when no bot token is configured", async () => {
-    expect((await resolveFieldAgent(db, { demoAgentId: "fa_dawit" }, undefined))?.id).toBe("fa_dawit");
-    expect(await resolveFieldAgent(db, { demoAgentId: "fa_dawit" }, "123:token")).toBeNull();
+  it("allows the demo picker only when demo mode is on and no bot token is configured", async () => {
+    expect((await resolveFieldAgent(db, { demoAgentId: "fa_dawit" }, { botToken: undefined, demoMode: true }))?.id).toBe("fa_dawit");
+    expect(await resolveFieldAgent(db, { demoAgentId: "fa_dawit" }, { botToken: "123:token", demoMode: true })).toBeNull();
+  });
+
+  it("fails closed when demo mode is off, even without a bot token", async () => {
+    expect(await resolveFieldAgent(db, { demoAgentId: "fa_dawit" }, { botToken: undefined, demoMode: false })).toBeNull();
+  });
+
+  it("never lets the demo picker reach a real, non-synthetic field agent", async () => {
+    await db.insert(fieldAgents).values({ id: "fa_real", orgId: "org_real", cooperativeId: "c", name: "Real Agent", registrationToken: "real-token", synthetic: false });
+    expect(await resolveFieldAgent(db, { demoAgentId: "fa_real" }, { botToken: undefined, demoMode: true })).toBeNull();
   });
 
   it("rejects missing or forged init data when a bot token is configured", async () => {
-    expect(await resolveFieldAgent(db, { initData: "hash=00&auth_date=1" }, "123:token")).toBeNull();
+    expect(await resolveFieldAgent(db, { initData: "hash=00&auth_date=1" }, { botToken: "123:token", demoMode: false })).toBeNull();
+  });
+});
+
+describe("demoModeEnabled", () => {
+  it("is on in development, and in production only with DEMO_MODE=1", () => {
+    expect(demoModeEnabled({ NODE_ENV: "development" })).toBe(true);
+    expect(demoModeEnabled({ NODE_ENV: "production" })).toBe(false);
+    expect(demoModeEnabled({ NODE_ENV: "production", DEMO_MODE: "1" })).toBe(true);
   });
 });
 
