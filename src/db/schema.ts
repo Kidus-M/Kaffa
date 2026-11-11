@@ -70,6 +70,8 @@ export const plots = pgTable(
     ref: text("ref").notNull(),
     farmerId: text("farmer_id").notNull(),
     cooperativeId: text("cooperative_id").notNull(),
+    /** The field agent responsible for this plot's data. */
+    fieldAgentId: text("field_agent_id"),
     geometry: jsonb("geometry").$type<PlotGeometry | null>(),
     declaredAreaHa: doublePrecision("declared_area_ha"),
     areaHa: doublePrecision("area_ha"),

@@ -75,6 +75,7 @@ export async function seedDemo(db: Db, now = new Date()): Promise<void> {
       ref: seed.ref,
       farmerId,
       cooperativeId: seed.cooperativeId,
+      fieldAgentId: agentFor(seed.ref),
       geometry: stored,
       declaredAreaHa: seed.declaredAreaHa,
       areaHa: v.areaHa,

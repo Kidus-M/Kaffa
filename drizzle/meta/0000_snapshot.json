@@ -1,5 +1,5 @@
 {
-  "id": "f7d0aa1b-6281-4101-8ed3-c4d4e28b1921",
+  "id": "f58e5afe-58f9-4493-98f4-15f185741a9b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -951,6 +951,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "field_agent_id": {
+          "name": "field_agent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "geometry": {
           "name": "geometry",

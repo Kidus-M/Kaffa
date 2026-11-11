@@ -78,6 +78,10 @@ describe("evaluateLot", () => {
     ]);
   });
 
+  it("is held by a clear plot that still has an open field request, such as an overlap", () => {
+    expect(evaluateLot([{ id: "a", status: "clear", openRequests: 1 }])).toEqual({ state: "held", heldBy: ["a"] });
+  });
+
   it("holds an empty lot", () => {
     expect(evaluateLot([]).state).toBe("held");
   });

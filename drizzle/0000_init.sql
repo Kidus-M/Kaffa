@@ -146,6 +146,7 @@ CREATE TABLE "plots" (
 	"ref" text NOT NULL,
 	"farmer_id" text NOT NULL,
 	"cooperative_id" text NOT NULL,
+	"field_agent_id" text,
 	"geometry" jsonb,
 	"declared_area_ha" double precision,
 	"area_ha" double precision,
