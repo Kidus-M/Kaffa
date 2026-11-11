@@ -52,3 +52,10 @@ A fresh reviewer checked the whole branch. Each fix below has a test that failed
 - **A row becomes a plot only if every field is at least 80% certain and farmer, area and coordinates are present.** Everything else waits on the Intake page, where a person corrects or rejects it. Corrected values count as certain. Cost if wrong: more rows to check by hand, never a silently wrong plot.
 - **New plots go to the cooperative's field agent with the fewest plots,** take the cooperative's next reference number, and keep Amharic names in Ge'ez script.
 - **Fixed (found while verifying intake): the local database existed twice in one server process.** Next.js bundles route handlers and pages separately, so module-level singletons are not shared; uploads, Telegram replies and Mini App walks wrote to one in-memory PGlite and the console read another. The database now lives on `globalThis`. Production on Neon was not affected.
+
+## Interface redesign
+
+- **Sidebar modelled on Adaption's app, in Kaffa's own identity.** A floating icon rail that expands over the page on hover or keyboard focus into stacked cards: navigation with counts, a data-sources card that says what is simulated, and the organisation. It becomes a top bar with a drawer on small screens. Kaffa's own coffee-bean mark, Lucide icons and green replace Adaption's branding.
+- **Layout follows published practice from Linear and dashboard research:** neutral surfaces with colour reserved for status, elevation instead of heavy borders, one headline answer per page (lots ready to ship), and progressive disclosure through status tiles that link to filtered plot lists.
+- **Typeface: Geist,** light weights for headings and regular for text, with Noto Sans Ethiopic for Amharic.
+- **The sidebar's loading state is a static skeleton,** because reading the URL in a Suspense fallback blocks prerendering in Next.js 16.

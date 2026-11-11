@@ -119,11 +119,11 @@ export function PlotMap({ plots, height = 420, focus = false }: { plots: MapPlot
   }, [mix]);
 
   return (
-    <figure className="flex flex-col gap-2">
-      <div ref={container} style={{ height }} className="w-full overflow-hidden rounded-lg border border-rule bg-ink" />
-      <figcaption className="flex flex-wrap items-center gap-3 text-sm text-ink-soft">
-        <label htmlFor={sliderId} className="shrink-0">
-          Satellite view
+    <figure className="relative">
+      <div ref={container} style={{ height }} className="w-full overflow-hidden rounded-[var(--radius-card)] bg-ink shadow-[var(--shadow-card)]" />
+      <figcaption className="absolute bottom-3 left-3 flex items-center gap-3 rounded-full bg-surface/95 px-4 py-2 text-[13px] text-ink-soft shadow-[var(--shadow-float)] backdrop-blur">
+        <label htmlFor={sliderId} className="font-medium text-ink">
+          Imagery
         </label>
         <span className="tabular-nums">{BEFORE}</span>
         <input
@@ -133,11 +133,11 @@ export function PlotMap({ plots, height = 420, focus = false }: { plots: MapPlot
           max={100}
           value={mix}
           onChange={(e) => setMix(Number(e.target.value))}
-          className="w-40 accent-canopy"
+          className="w-28 accent-[var(--color-leaf)] sm:w-36"
           aria-valuetext={mix < 50 ? `Mostly ${BEFORE}, the EU cut-off year` : `Mostly ${AFTER}`}
+          title={`Drag toward ${BEFORE} to see the land at the EU cut-off date`}
         />
         <span className="tabular-nums">{AFTER}</span>
-        <span className="basis-full text-xs sm:basis-auto">Drag toward {BEFORE} to see the land at the EU cut-off date.</span>
       </figcaption>
     </figure>
   );

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { Instrument_Sans, Noto_Sans_Ethiopic } from "next/font/google";
+import { Geist, Noto_Sans_Ethiopic } from "next/font/google";
 import "./globals.css";
 
-const sans = Instrument_Sans({ variable: "--font-instrument", subsets: ["latin"] });
+const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
 const ethiopic = Noto_Sans_Ethiopic({ variable: "--font-noto-ethiopic", subsets: ["ethiopic"], weight: ["400", "600"] });
 
 export const metadata: Metadata = {
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${sans.variable} ${ethiopic.variable} h-full antialiased`}>
+    <html lang="en" suppressHydrationWarning className={`${geist.variable} ${ethiopic.variable} h-full antialiased`}>
       <body className="min-h-full">{children}</body>
     </html>
   );

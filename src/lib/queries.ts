@@ -201,3 +201,15 @@ export async function getShipmentByToken(db: Db, token: string) {
   const [s] = await db.select().from(shipments).where(eq(shipments.portalToken, token));
   return s ?? null;
 }
+
+/** Plot counts by status, for the overview's headline figures. */
+export async function getPlotCounts(db: Db, orgId: string) {
+  const rows = await db.select({ status: plots.status, reviewAccepted: plots.reviewAccepted }).from(plots).where(eq(plots.orgId, orgId));
+  const counts: Record<PlotStatus, number> = { clear: 0, review: 0, blocked: 0, not_checked: 0 };
+  let accepted = 0;
+  for (const r of rows) {
+    counts[r.status]++;
+    if (r.status === "review" && r.reviewAccepted) accepted++;
+  }
+  return { ...counts, accepted, total: rows.length };
+}

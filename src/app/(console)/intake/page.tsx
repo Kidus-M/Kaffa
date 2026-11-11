@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { and, desc, eq } from "drizzle-orm";
 import { IntakeRowForm } from "@/components/intake-row-form";
 import { IntakeUpload } from "@/components/intake-upload";
+import { Card, CardHeader, EmptyState, PageHeader } from "@/components/ui";
 import { cooperatives, intakeBatches, intakeRows } from "@/db/schema";
 import { consoleContext } from "@/lib/console";
 import { integrationStatus } from "@/services/deps";
@@ -11,14 +12,12 @@ export const metadata = { title: "Intake" };
 
 export default function IntakePage() {
   return (
-    <div className="flex max-w-4xl flex-col gap-8">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight">Intake</h1>
-        <p className="mt-2 text-ink-soft">
-          Upload a cooperative&apos;s register. Confident rows become plots and are checked against the same rules as every plot. Rows the intake agent is unsure about wait here for you.
-        </p>
-      </header>
-      <Suspense fallback={<p className="text-ink-soft">Loading…</p>}>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Intake"
+        description="Upload a cooperative's register. Confident rows become plots and go through the same checks as every plot. Rows the intake agent is unsure about wait here for you."
+      />
+      <Suspense fallback={<div className="h-80 animate-pulse rounded-[var(--radius-card)] bg-sunken" />}>
         <IntakeBody />
       </Suspense>
     </div>
@@ -35,42 +34,53 @@ async function IntakeBody() {
     .where(and(eq(intakeRows.orgId, orgId), eq(intakeRows.status, "pending")))
     .orderBy(desc(intakeRows.createdAt), intakeRows.idx);
   const batches = await db.select().from(intakeBatches).where(eq(intakeBatches.orgId, orgId)).orderBy(desc(intakeBatches.createdAt)).limit(8);
-  const created = await db
-    .select({ batchId: intakeRows.batchId, plotId: intakeRows.plotId })
-    .from(intakeRows)
-    .where(and(eq(intakeRows.orgId, orgId), eq(intakeRows.status, "accepted")));
 
   return (
-    <>
-      <IntakeUpload cooperatives={coops} photosEnabled={integrationStatus().gemini === "live"} />
+    <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="flex min-w-0 flex-col gap-6">
+        <Card className="p-6">
+          <IntakeUpload cooperatives={coops} photosEnabled={integrationStatus().gemini === "live"} />
+        </Card>
+        <section aria-labelledby="review" className="flex flex-col gap-3">
+          <div className="flex items-baseline justify-between">
+            <h2 id="review" className="text-[19px] font-medium tracking-[-0.015em]">Rows to check</h2>
+            {pending.length ? <span className="text-sm text-ink-soft">{pending.length} waiting</span> : null}
+          </div>
+          {pending.length === 0 ? (
+            <EmptyState title="Nothing to check">Rows appear here when a value is missing or the intake agent is less than 80% sure of it.</EmptyState>
+          ) : (
+            pending.map(({ row, fileName }) => (
+              <Card key={row.id}>
+                <IntakeRowForm rowId={row.id} fileName={fileName} reviewFields={row.reviewFields} data={row.data as Record<string, { value: string | number | null; confidence: number }>} />
+              </Card>
+            ))
+          )}
+        </section>
+      </div>
 
-      <section aria-labelledby="review" className="flex flex-col gap-3">
-        <h2 id="review" className="text-xl font-semibold">Rows to check</h2>
-        {pending.length === 0 ? (
-          <p className="text-ink-soft">Nothing to check. Rows appear here when a value is missing or the intake agent is less than 80% sure of it.</p>
+      <Card aria-labelledby="batches" className="xl:sticky xl:top-12">
+        <CardHeader id="batches" title="Recent registers" />
+        {batches.length === 0 ? (
+          <p className="px-6 pt-3 pb-6 text-sm text-ink-soft">No registers uploaded yet.</p>
         ) : (
-          pending.map(({ row, fileName }) => (
-            <IntakeRowForm key={row.id} rowId={row.id} fileName={fileName} reviewFields={row.reviewFields} data={row.data as Record<string, { value: string | number | null; confidence: number }>} />
-          ))
-        )}
-      </section>
-
-      {batches.length ? (
-        <section aria-labelledby="batches" className="flex flex-col gap-2">
-          <h2 id="batches" className="text-xl font-semibold">Recent registers</h2>
-          <ul className="flex flex-col gap-1 text-sm">
+          <ul className="flex flex-col px-3 pt-2 pb-3">
             {batches.map((b) => (
-              <li key={b.id}>
-                <span className="font-medium">{b.fileName}</span>{" "}
-                <span className="text-ink-soft">
-                  {b.source === "photo" ? "photo, read by Gemini" : "spreadsheet"}: {b.rowCount} rows, {b.createdCount} plots created, {b.reviewCount} sent for review.{" "}
-                  {created.filter((c) => c.batchId === b.id).length ? <Link href="/plots" className="text-canopy underline underline-offset-2">See plots</Link> : null}
+              <li key={b.id} className="flex flex-col gap-0.5 rounded-[var(--radius-control)] px-3 py-2.5">
+                <span className="truncate text-sm font-medium">{b.fileName}</span>
+                <span className="text-[13px] text-ink-soft">
+                  {b.source === "photo" ? "Photo, read by Gemini" : "Spreadsheet"}: {b.createdCount} of {b.rowCount} rows became plots
+                  {b.reviewCount ? `, ${b.reviewCount} sent for review` : ""}
                 </span>
               </li>
             ))}
           </ul>
-        </section>
-      ) : null}
-    </>
+        )}
+        <div className="border-t border-hairline px-6 py-4">
+          <Link href="/plots?view=table" className="text-[13px] font-medium text-ink hover:text-leaf">
+            See all plots
+          </Link>
+        </div>
+      </Card>
+    </div>
   );
 }

@@ -1,41 +1,56 @@
 @import "tailwindcss";
 
 /*
- * Kaffa palette. Colour carries meaning: each status has one colour, used nowhere else.
- * Paper is a cool sage, not cream; structure is canopy green.
+ * Kaffa design tokens. Neutral surfaces, hairline edges, elevation for hierarchy.
+ * Colour carries meaning only: status colours are never used for decoration.
  */
 @theme {
-  --color-paper: #f1f4f0;
-  --color-sheet: #fbfcfa;
-  --color-ink: #1c2420;
-  --color-ink-soft: #55615b;
-  --color-rule: #d7ded8;
-  --color-canopy: #1e4a37;
-  --color-canopy-soft: #e3ece6;
+  /* Surfaces, darkest text to lightest page */
+  --color-ink: #17191a;
+  --color-ink-soft: #5c6360;
+  --color-ink-faint: #8d9390;
+  --color-page: #f7f8f7;
+  --color-surface: #ffffff;
+  --color-sunken: #f1f3f1;
+  --color-hairline: rgb(23 25 26 / 0.08);
+  --color-hairline-strong: rgb(23 25 26 / 0.14);
 
-  --color-clear: #2e7a4c;
-  --color-review: #c48514;
-  --color-blocked: #b0263a;
-  --color-unchecked: #8b938e;
+  /* Brand: coffee-leaf green, used sparingly */
+  --color-leaf: #17694a;
+  --color-leaf-ink: #0f4a34;
+  --color-leaf-wash: #e7f4ec;
 
-  /* Latin from Instrument Sans; Ge'ez script falls through to Noto Sans Ethiopic. */
-  --font-sans: var(--font-instrument), var(--font-noto-ethiopic), ui-sans-serif, system-ui, sans-serif;
-  --font-amharic: var(--font-noto-ethiopic), var(--font-instrument), sans-serif;
+  /* Status, always paired with a label */
+  --color-clear: #1d8a59;
+  --color-clear-wash: #e6f5ed;
+  --color-review: #c27c0e;
+  --color-review-wash: #fbf1df;
+  --color-blocked: #cc3247;
+  --color-blocked-wash: #fbe9ec;
+  --color-unchecked: #8f9692;
+  --color-unchecked-wash: #eef0ef;
 
-  --radius-tile: 3px;
+  --font-sans: var(--font-geist), var(--font-noto-ethiopic), ui-sans-serif, system-ui, sans-serif;
+  --font-amharic: var(--font-noto-ethiopic), var(--font-geist), sans-serif;
+
+  --radius-tile: 4px;
+  --radius-control: 12px;
+  --radius-card: 20px;
+  --radius-shell: 24px;
+
+  --shadow-card: 0 1px 2px rgb(23 25 26 / 0.04), 0 0 0 1px rgb(23 25 26 / 0.06);
+  --shadow-float: 0 1px 2px rgb(23 25 26 / 0.04), 0 8px 24px -6px rgb(23 25 26 / 0.12), 0 0 0 1px rgb(23 25 26 / 0.06);
 }
 
 @layer base {
-  html {
-    font-kerning: normal;
-  }
   body {
-    background: var(--color-paper);
+    background: var(--color-page);
     color: var(--color-ink);
     font-family: var(--font-sans);
+    font-feature-settings: "ss01" 1, "cv11" 1;
   }
   :focus-visible {
-    outline: 2px solid var(--color-canopy);
+    outline: 2px solid var(--color-leaf);
     outline-offset: 2px;
   }
   h1,
@@ -45,6 +60,9 @@
   }
   p {
     text-wrap: pretty;
+  }
+  ::selection {
+    background: var(--color-leaf-wash);
   }
 }
 
@@ -57,13 +75,13 @@
   }
 }
 
-/* The plot strip: one tile per plot, like beans on a drying bed. */
+/* The plot strip: one tile per plot, settling in once on load. */
 @keyframes settle {
   from {
-    transform: scale(0.6);
+    transform: scale(0.5);
     opacity: 0;
   }
 }
 .tile-settle {
-  animation: settle 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: settle 380ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }

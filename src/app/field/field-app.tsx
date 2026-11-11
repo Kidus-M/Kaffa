@@ -177,7 +177,7 @@ export function FieldApp() {
       : 0;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col gap-5 bg-sheet px-4 py-6">
+    <main className="mx-auto flex min-h-screen max-w-md flex-col gap-5 bg-page px-4 py-6">
       {!session ? (
         <section className="flex flex-col gap-3">
           <h1 className="text-2xl font-bold">Kaffa field tasks</h1>
@@ -191,7 +191,7 @@ export function FieldApp() {
                   setDemoAgentId(id);
                   void load(id);
                 }}
-                className="rounded-md border border-rule bg-white px-4 py-3 text-left hover:border-canopy"
+                className="rounded-md border border-hairline bg-white px-4 py-3 text-left hover:border-leaf"
               >
                 Continue as {name}
               </button>
@@ -207,14 +207,14 @@ export function FieldApp() {
               {session.demo ? ", demo mode" : ""}
             </p>
           </header>
-          {result ? <p role="status" className="rounded-md bg-canopy-soft p-3 text-sm">{result}</p> : null}
+          {result ? <p role="status" className="rounded-md bg-leaf-wash p-3 text-sm">{result}</p> : null}
           {active ? (
-            <section className="flex flex-col gap-3 rounded-lg border border-canopy p-4">
+            <section className="flex flex-col gap-3 rounded-lg border border-leaf p-4">
               <h2 className="text-lg font-semibold">Walking {active.plotRef}</h2>
               <p className="text-sm text-ink-soft">Walk slowly along the edge of the farm and come back to where you started.</p>
               <p className="text-3xl font-bold tabular-nums">{liveArea.toFixed(2)} ha</p>
               <p className="text-sm text-ink-soft tabular-nums">{points.length} GPS points</p>
-              <button onClick={() => send(active, points)} className="rounded-md bg-canopy px-4 py-3 font-semibold text-white">
+              <button onClick={() => send(active, points)} className="rounded-md bg-leaf px-4 py-3 font-semibold text-white">
                 {t.stop}
               </button>
             </section>
@@ -223,18 +223,18 @@ export function FieldApp() {
           ) : (
             <ul className="flex flex-col gap-3">
               {session.tasks.map((task) => (
-                <li key={task.plotRef} className="flex flex-col gap-2 rounded-lg border border-rule bg-white p-4">
+                <li key={task.plotRef} className="flex flex-col gap-2 rounded-lg border border-hairline bg-white p-4">
                   <p className="font-semibold">
                     {task.plotRef} <span className="font-normal text-ink-soft">{task.farmer}</span>
                   </p>
                   <p className="text-sm">{needText(task.need)}</p>
                   {task.need !== "photo" ? (
                     <div className="flex flex-col gap-2">
-                      <button onClick={() => startWalk(task)} lang={session.agent.language} className="rounded-md bg-canopy px-4 py-2.5 font-amharic font-semibold text-white">
+                      <button onClick={() => startWalk(task)} lang={session.agent.language} className="rounded-md bg-leaf px-4 py-2.5 font-amharic font-semibold text-white">
                         {t.walk}
                       </button>
                       {session.demo ? (
-                        <button onClick={() => simulateWalk(task)} className="rounded-md border border-rule px-4 py-2 text-sm">
+                        <button onClick={() => simulateWalk(task)} className="rounded-md border border-hairline px-4 py-2 text-sm">
                           Simulate the walk (demo only)
                         </button>
                       ) : null}

@@ -21,12 +21,19 @@ export const STATUS_TEXT: Record<PlotStatus, string> = {
   not_checked: "text-unchecked",
 };
 
+const STATUS_WASH: Record<PlotStatus, string> = {
+  clear: "bg-clear-wash",
+  review: "bg-review-wash",
+  blocked: "bg-blocked-wash",
+  not_checked: "bg-unchecked-wash",
+};
+
+/** Status as a pill: colour and words together, never colour alone. */
 export function StatusBadge({ status, accepted }: { status: PlotStatus; accepted?: boolean }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 text-sm font-medium ${STATUS_TEXT[status]}`}>
-      <span className={`size-2.5 rounded-full ${STATUS_BG[status]}`} aria-hidden />
-      {STATUS_LABEL[status]}
-      {status === "review" && accepted ? <span className="text-ink-soft font-normal">, accepted</span> : null}
+    <span className={`inline-flex h-6 items-center gap-1.5 rounded-full px-2.5 text-[13px] font-medium ${STATUS_WASH[status]} ${STATUS_TEXT[status]}`}>
+      <span className={`size-1.5 rounded-full ${STATUS_BG[status]}`} aria-hidden />
+      {status === "review" && accepted ? "Accepted after review" : STATUS_LABEL[status]}
     </span>
   );
 }
