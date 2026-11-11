@@ -25,3 +25,23 @@ Each entry: what was decided, why, and what it costs if wrong. Plan: `docs/plans
 - **Tier 1 console has no sign-in and serves only the synthetic demo organisation**; every table is already scoped by organisation, and sign-in with roles is Tier 2. Cost if wrong: do not load real farm data into a public deployment before Tier 2.
 - **Imagery compares 2020 with 2025 on one map with a fade slider**, not two synced maps. Why: 2020 is the EUDR cut-off year; one map is simpler and more robust. Imagery is capped at zoom 14, the highest EOX serves, and upscaled beyond that. The MapLibre worker is served from `public/` because Turbopack does not bundle it; `postinstall` keeps the copy current.
 - **Security fix: the Mini App's demo picker fails closed.** It works only in development or with `DEMO_MODE=1` in production, never alongside a bot token, and only for synthetic field agents in the demo organisation. Found by an automated security review: before this, a production deployment without a bot token would have let anyone act as any field agent.
+
+## Final review fix pass
+
+A fresh reviewer checked the whole branch. Each fix below has a test that failed first.
+
+- **Fixed (critical):** a near-collinear ring passed validation because its area after truncation was floating-point residue, not zero. Rings under 1 m² now count as collapsed.
+- **Fixed:** accepted review plots were re-held by the next daily run. Accepting a review now closes its photo requests, and screening opens no new photo request for an accepted review or one whose photo already arrived.
+- **Fixed:** a failed Telegram update was marked as seen, so Telegram's retry was dropped. The marker is now removed on failure, and an unparseable Gemini response counts as Gemini being unavailable.
+- **Fixed:** GPS jitter at a corner rejected a valid walk. Fixes within their own accuracy of the last point are dropped, and crossings are checked after simplification.
+- **Fixed:** an out-and-back walk along a line closed a boundary request. Walks under 100 m² are rejected as too small, and degenerate tracks no longer crash.
+- **Fixed:** a re-walked boundary was not re-checked for overlaps. Recapture now checks neighbours and keeps the overlap request open if the new shape still overlaps.
+- **Fixed:** held lots could be downloaded, and refused plots were left out silently. Exports now require a ready lot and are all-or-nothing; the portal shows downloads only for ready lots.
+- **Added:** the exporter can remove a blocked plot from its lot, with a reason on the ledger. This is the simplest form of the design's lot split, and without it a lot with a blocked plot could never ship.
+- **Fixed:** chase runs piled up behind the per-agent concurrency limit. The workflow is now a singleton per field agent that skips new requests while one runs.
+- **Fixed (promoted from minor because it is a security issue):** a registration link worked forever. The token now rotates on first use.
+- Minor, deferred: the forecast ignores held plots that have no open request, such as a received photo awaiting a decision.
+- Minor, deferred: a location reply to a "confirm" request on a swapped polygon replaces the polygon with a point.
+- Minor, deferred: a status change and its ledger entry are written in separate transactions.
+- Minor, deferred: approving a `review_photo` approval does not itself accept the review; the exporter accepts on the plot page.
+- Minor, deferred: the daily message cap counts acknowledgement messages too.

@@ -54,6 +54,9 @@ async function Portal({ params }: { params: PageProps<"/portal/[token]">["params
               <span className={l.state === "ready" ? "font-medium text-clear" : "text-ink-soft"}>{l.state === "ready" ? "Ready" : "Being resolved"}</span>
             </div>
             <PlotStrip plots={l.plots} link={false} />
+            {l.state !== "ready" ? (
+              <p className="text-sm text-ink-soft">Downloads open when every plot in this lot is resolved.</p>
+            ) : (
             <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
               <a className="text-canopy underline underline-offset-2" href={`/api/export/${l.ref}?token=${token}`}>
                 Download plots for the EU information system (GeoJSON)
@@ -62,6 +65,7 @@ async function Portal({ params }: { params: PageProps<"/portal/[token]">["params
                 Download the due diligence data sheet
               </a>
             </p>
+            )}
           </article>
         ))}
       </section>

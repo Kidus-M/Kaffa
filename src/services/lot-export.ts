@@ -13,6 +13,7 @@ export async function exportLot(db: Db, input: { lotRef: string; token: string; 
     .innerJoin(shipments, eq(shipments.id, lots.shipmentId))
     .where(and(eq(lots.ref, input.lotRef), eq(shipments.portalToken, input.token)));
   if (!row) return null;
+  if (row.lot.state !== "ready") return { ready: false as const, lot: row.lot, reason: "held" as const };
 
   const members = await db
     .select({ plot: plots, farmer: farmers })
@@ -45,5 +46,7 @@ export async function exportLot(db: Db, input: { lotRef: string; token: string; 
     statusSummary: summary,
     generatedAt: (input.now ?? new Date()).toISOString(),
   });
-  return { lot: row.lot, files, fileNames, rejected, sheet };
+  // A partial file would let a buyer file a statement with plots missing: all or nothing.
+  if (rejected.length || members.some((m) => !m.plot.geometry)) return { ready: false as const, lot: row.lot, reason: "incomplete" as const };
+  return { ready: true as const, lot: row.lot, files, fileNames, rejected, sheet };
 }

@@ -77,8 +77,8 @@ export async function fieldTasks(db: Db, agent: Agent) {
 
 export type WalkSubmission = { plotRef: string; points: WalkPoint[]; simulated?: boolean };
 export type WalkOutcome =
-  | { ok: true; areaHa: number; dropped: number }
-  | { ok: false; reason: "not_your_task" | "too_few_points" | "self_intersection" | "invalid_boundary" };
+  | { ok: true; areaHa: number; dropped: number; overlaps: { plotRef: string; overlapHa: number }[] }
+  | { ok: false; reason: "not_your_task" | "too_few_points" | "self_intersection" | "too_small" | "invalid_boundary" };
 
 const WALKABLE = ["boundary", "location", "confirm"] as const;
 
@@ -94,7 +94,7 @@ export async function submitWalk(deps: { db: Db; emit: Emit }, agent: Agent, inp
   const walked = walkToPolygon(input.points);
   if (!walked.ok) return { ok: false, reason: walked.reason };
 
-  const { validation } = await recapturePlot(db, {
+  const { validation, overlaps } = await recapturePlot(db, {
     orgId: agent.orgId,
     plotId: task.plotId,
     geometry: walked.polygon,
@@ -110,5 +110,5 @@ export async function submitWalk(deps: { db: Db; emit: Emit }, agent: Agent, inp
   });
   await deps.emit({ name: EVENTS.fieldReplied, data: { orgId: agent.orgId, fieldAgentId: agent.id, intent: "boundary_submitted", plotRefs: [input.plotRef] } });
   await deps.emit({ name: EVENTS.plotScreenRequested, data: { orgId: agent.orgId, plotId: task.plotId } });
-  return { ok: true, areaHa: walked.areaHa, dropped: walked.dropped };
+  return { ok: true, areaHa: walked.areaHa, dropped: walked.dropped, overlaps };
 }

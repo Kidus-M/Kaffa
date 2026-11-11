@@ -31,8 +31,8 @@ export const chaseFieldAgentFn = inngest.createFunction(
   {
     id: "chase-field-agent",
     triggers: [{ event: EVENTS.chaseRequested }],
-    // One chase at a time per field agent; a second request waits for the first to finish.
-    concurrency: { key: "event.data.fieldAgentId", limit: 1 },
+    // One chase per field agent: while one is running, new requests (such as the daily run's) are skipped.
+    singleton: { key: "event.data.fieldAgentId", mode: "skip" },
   },
   async ({ event, step }) => {
     const data = chaseEvent.parse(event.data);

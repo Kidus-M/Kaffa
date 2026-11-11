@@ -16,6 +16,8 @@ export function describeEvent(type: string, payload: unknown): string {
       return `${p.plotRef} has a new ${p.source === "mini_app_walk" ? "walked boundary" : "location"} from the field${p.valid ? "" : ", still invalid"}.`;
     case "lot.held":
       return `Lot ${p.lotRef} held by ${(p.heldBy as string[]).join(", ") || "its plots"}.`;
+    case "lot.plot_removed":
+      return `${p.plotRef} removed from lot ${p.lotRef}: "${p.reason}".`;
     case "lot.ready":
       return `Lot ${p.lotRef} is ready to ship.`;
     case "chase.sent":

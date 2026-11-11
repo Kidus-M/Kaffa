@@ -11,6 +11,9 @@ import {
 } from "@/config/policy";
 import type { AreaGeometry, Issue, IssueCode, PlotGeometry, Polygon, Position } from "./types";
 
+/** Below this a ring is floating-point residue, not land: one square metre. */
+const MIN_RING_AREA_M2 = 1;
+
 const issue = (code: IssueCode, severity: Issue["severity"], message: string): Issue => ({ code, severity, message });
 
 /** The EU system truncates to 6 decimals; we do the same so validation sees what the EU will see. */
@@ -157,7 +160,8 @@ export function validatePlot(input: unknown, opts: { declaredAreaHa?: number } =
     (rings) => rings.every((r) => distinctCount(r) >= 3) && kinks(polygon(rings.map(dedupeConsecutive))).features.length > 0,
   );
   const collapsed =
-    !crosses && parts.some((rings) => rings.some((r) => distinctCount(r) < 3 || area(polygon([dedupeConsecutive(r)])) === 0));
+    !crosses &&
+    parts.some((rings) => rings.some((r) => distinctCount(r) < 3 || area(polygon([dedupeConsecutive(r)])) < MIN_RING_AREA_M2));
   if (collapsed) {
     issues.push(issue("degenerate_after_truncation", "error", "The shape collapses at 6 decimal places, the EU system's precision."));
     return { ok: false, issues: dedupeIssues(issues), geometry: g, areaHa: null };

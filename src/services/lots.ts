@@ -8,7 +8,11 @@ import { evaluateLot } from "@/domain/lots";
 export async function refreshLots(db: Db, orgId: string, plotIds: string[]): Promise<void> {
   if (!plotIds.length) return;
   const affected = await db.selectDistinct({ lotId: lotPlots.lotId }).from(lotPlots).where(inArray(lotPlots.plotId, plotIds));
-  for (const { lotId } of affected) {
+  await refreshLotsByIds(db, orgId, affected.map((a) => a.lotId));
+}
+
+export async function refreshLotsByIds(db: Db, orgId: string, lotIds: string[]): Promise<void> {
+  for (const lotId of lotIds) {
     const [lot] = await db.select().from(lots).where(and(eq(lots.id, lotId), eq(lots.orgId, orgId)));
     if (!lot) continue;
     const rows = await db

@@ -11,6 +11,12 @@ export async function GET(request: Request, ctx: RouteContext<"/api/export/[lot]
   const token = url.searchParams.get("token") ?? "";
   const result = await exportLot(await getDb(), { lotRef: decodeURIComponent(lot), token });
   if (!result) return Response.json({ error: "not found" }, { status: 404 });
+  if (!result.ready) {
+    return Response.json(
+      { error: result.reason === "held" ? "This lot is not ready yet; the exporter is resolving its plots." : "Some plots cannot be exported yet." },
+      { status: 409 },
+    );
+  }
 
   if (url.searchParams.get("file") === "sheet") {
     return Response.json(result.sheet, {

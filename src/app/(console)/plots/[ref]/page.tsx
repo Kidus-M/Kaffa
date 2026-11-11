@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { AcceptReview } from "@/components/accept-review";
 import { PlotMap } from "@/components/plot-map";
+import { RemoveFromLot } from "@/components/remove-from-lot";
 import { StatusBadge, needText, reasonText } from "@/components/status";
 import { blockThresholdHa } from "@/domain/status";
 import { consoleContext } from "@/lib/console";
@@ -98,6 +99,7 @@ async function PlotBody({ params }: { params: PageProps<"/plots/[ref]">["params"
 
         <div className="flex flex-col gap-8">
           {plot.status === "review" && !plot.reviewAccepted ? <AcceptReview plotRef={plot.ref} /> : null}
+          {plot.status === "blocked" && lot ? <RemoveFromLot plotRef={plot.ref} lotRef={lot.ref} /> : null}
           {plot.reviewAccepted && plot.reviewReason ? (
             <p className="rounded-lg border border-rule bg-sheet p-4 text-sm">Accepted after review: &ldquo;{plot.reviewReason}&rdquo;</p>
           ) : null}

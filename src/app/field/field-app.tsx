@@ -144,7 +144,11 @@ export function FieldApp() {
       const res = await fetch("/api/field/walk", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
       const body = await res.json();
       if (body.ok) {
-        setResult(`${task.plotRef}: boundary saved, ${body.areaHa.toFixed(2)} ha. Kaffa is checking it against satellite data.`);
+        setResult(
+          body.overlaps?.length
+            ? `${task.plotRef}: boundary saved, ${body.areaHa.toFixed(2)} ha, but it still overlaps ${body.overlaps.map((o: { plotRef: string }) => o.plotRef).join(", ")}. Check the shared edge with that farmer.`
+            : `${task.plotRef}: boundary saved, ${body.areaHa.toFixed(2)} ha. Kaffa is checking it against satellite data.`,
+        );
         setActive(null);
         await load(demoAgentId);
       } else {
@@ -153,7 +157,9 @@ export function FieldApp() {
             ? "Too few accurate GPS points. Walk the whole boundary again, slowly."
             : body.reason === "self_intersection"
               ? "The path crossed itself. Walk the boundary in one direction."
-              : "This boundary could not be accepted. Walk it again.",
+              : body.reason === "too_small"
+                ? "That shape is too small to be a farm. Walk all the way around the edge."
+                : "This boundary could not be accepted. Walk it again.",
         );
       }
     } catch {

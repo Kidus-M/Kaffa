@@ -93,6 +93,12 @@ describe("validatePlot", () => {
     expect(codes(r)).toContain("degenerate_after_truncation");
   });
 
+  it("flags a near-collinear ring whose area at 6 decimals is only floating-point residue", () => {
+    const r = validatePlot(poly([[38.200001, 6.160001], [38.200003, 6.160003], [38.200005, 6.160005], [38.200001, 6.160001]]));
+    expect(r.ok).toBe(false);
+    expect(codes(r)).toContain("degenerate_after_truncation");
+  });
+
   it("warns when the declared area differs from the mapped area by more than 20%", () => {
     const r = validatePlot(poly(square(100)), { declaredAreaHa: 2 });
     expect(r.issues.find((i) => i.code === "area_mismatch")?.severity).toBe("warning");

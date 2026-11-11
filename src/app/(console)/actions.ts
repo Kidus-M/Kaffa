@@ -8,7 +8,7 @@ import { approvals, gaps, plots } from "@/db/schema";
 import { seedDemo } from "@/db/seed";
 import { sendChase } from "@/services/chase";
 import { getAppDeps } from "@/services/deps";
-import { refreshLots } from "@/services/lots";
+import { acceptReviewPlot, removePlotFromLot } from "@/services/plots";
 import { EVENTS } from "@/workflows/events";
 import { consoleContext } from "@/lib/console";
 
@@ -44,23 +44,29 @@ export async function runChecks(): Promise<ActionState> {
   return { ok: true, message: `Screened ${screenable.length} plots and messaged ${chased} of ${agents.length} field agents with open requests.${waiting}` };
 }
 
-const acceptSchema = z.object({
+const reasonSchema = z.object({
   plotRef: z.string().regex(/^[A-Z]{3}-\d{3}$/),
   reason: z.string().trim().min(12, "Give a reason of at least 12 characters; it goes on the ledger."),
 });
 
 /** A person accepts a review plot. Locked to "ask first" by the autonomy rules. */
 export async function acceptReview(_prev: ActionState, form: FormData): Promise<ActionState> {
-  const parsed = acceptSchema.safeParse({ plotRef: form.get("plotRef"), reason: form.get("reason") });
+  const parsed = reasonSchema.safeParse({ plotRef: form.get("plotRef"), reason: form.get("reason") });
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0].message };
   const { db, orgId } = await consoleContext();
-  const [plot] = await db.select().from(plots).where(and(eq(plots.orgId, orgId), eq(plots.ref, parsed.data.plotRef)));
-  if (!plot || plot.status !== "review") return { ok: false, message: "Only a plot that needs review can be accepted." };
-  await db.update(plots).set({ reviewAccepted: true, reviewReason: parsed.data.reason }).where(eq(plots.id, plot.id));
-  await recordEvent(db, { orgId, type: "review.accepted", payload: { plotRef: plot.ref, reason: parsed.data.reason, by: "exporter" } });
-  await refreshLots(db, orgId, [plot.id]);
+  const result = await acceptReviewPlot(db, { orgId, ...parsed.data });
   revalidatePath("/", "layout");
-  return { ok: true, message: `${plot.ref} accepted. The reason is on the ledger.` };
+  return result;
+}
+
+/** The exporter takes a plot out of its lot; also locked to "ask first". */
+export async function removeFromLot(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const parsed = reasonSchema.safeParse({ plotRef: form.get("plotRef"), reason: form.get("reason") });
+  if (!parsed.success) return { ok: false, message: parsed.error.issues[0].message };
+  const { db, orgId } = await consoleContext();
+  const result = await removePlotFromLot(db, { orgId, ...parsed.data });
+  revalidatePath("/", "layout");
+  return result;
 }
 
 const decideSchema = z.object({

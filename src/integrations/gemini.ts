@@ -49,7 +49,13 @@ export function createGemini(opts: { apiKey?: string; model: string }): GeminiLi
       } catch (e) {
         throw new GeminiUnavailable(e instanceof Error ? e.message : String(e));
       }
-      const parsed = req.schema.safeParse(JSON.parse(response.text ?? "null"));
+      let raw: unknown;
+      try {
+        raw = JSON.parse(response.text ?? "null");
+      } catch {
+        throw new GeminiUnavailable(`unparseable output for ${req.agent}`);
+      }
+      const parsed = req.schema.safeParse(raw);
       if (!parsed.success) throw new GeminiUnavailable(`invalid output for ${req.agent}`);
       return {
         data: parsed.data,

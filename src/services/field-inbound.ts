@@ -2,6 +2,7 @@
  * Handles everything a field agent sends the bot: registration, locations, photos and text.
  * Idempotent by Telegram update ID, and only registered accounts can change data.
  */
+import { randomBytes } from "node:crypto";
 import { and, eq, inArray } from "drizzle-orm";
 import { extractReply, type ReplyIntent } from "@/agents/field-liaison";
 import type { Db } from "@/db/client";
@@ -57,6 +58,17 @@ export async function handleInbound(msg: Inbound, deps: InboundDeps): Promise<In
   const { db } = deps;
   const fresh = await db.insert(processedUpdates).values({ updateId: msg.updateId }).onConflictDoNothing().returning();
   if (fresh.length === 0) return { status: "duplicate" };
+  try {
+    return await process(msg, deps);
+  } catch (e) {
+    // Forget the update so Telegram's retry is processed instead of dropped as a duplicate.
+    await db.delete(processedUpdates).where(eq(processedUpdates.updateId, msg.updateId));
+    throw e;
+  }
+}
+
+async function process(msg: Inbound, deps: InboundDeps): Promise<InboundResult> {
+  const { db } = deps;
 
   if (msg.kind === "start") {
     const [agent] = msg.startPayload
@@ -66,7 +78,11 @@ export async function handleInbound(msg: Inbound, deps: InboundDeps): Promise<In
       await deps.telegram?.sendMessage(msg.chatId, COPY.unknown);
       return { status: "unknown_sender" };
     }
-    await db.update(fieldAgents).set({ telegramChatId: msg.chatId }).where(eq(fieldAgents.id, agent.id));
+    // A link works once: the token rotates, so a forwarded or leaked link cannot take over the account.
+    await db
+      .update(fieldAgents)
+      .set({ telegramChatId: msg.chatId, registrationToken: `${agent.id}-${randomBytes(9).toString("base64url")}` })
+      .where(eq(fieldAgents.id, agent.id));
     await recordEvent(db, { orgId: agent.orgId, type: "field_agent.registered", payload: { fieldAgentId: agent.id } });
     await send(deps, { ...agent, telegramChatId: msg.chatId }, COPY.welcome[agent.language], {
       webAppUrl: `${deps.appUrl}/field`,

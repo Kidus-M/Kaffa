@@ -2,7 +2,7 @@
  * Geo analyst: screens one plot against every satellite source, then lets the rules
  * decide its status. Each step is traced and each outcome goes on the ledger.
  */
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { CUTOFF_DATE } from "@/config/policy";
 import type { Db } from "@/db/client";
 import { recordEvent } from "@/db/events";
@@ -74,11 +74,13 @@ export async function screenPlot(
       })
       .where(eq(plots.id, plot.id));
 
-    if (evaluation.status === "review") {
+    const stillAccepted = evaluation.status === plot.status && plot.reviewAccepted;
+    if (evaluation.status === "review" && !stillAccepted) {
+      // One photo request per review: none if one is open, or a photo already arrived and awaits a decision.
       const existing = await db
         .select()
         .from(gaps)
-        .where(and(eq(gaps.plotId, plot.id), eq(gaps.status, "open"), eq(gaps.need, "photo")));
+        .where(and(eq(gaps.plotId, plot.id), eq(gaps.need, "photo"), sql`${gaps.openedAt} > now() - interval '30 days'`));
       const spec = gapsForPlot({ issueCodes: [], status: "review", overlaps: false })[0];
       if (!existing.length && plot.fieldAgentId) {
         await db.insert(gaps).values({ orgId: input.orgId, plotId: plot.id, fieldAgentId: plot.fieldAgentId, need: spec.need, reason: spec.reason });
