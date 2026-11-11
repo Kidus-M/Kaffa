@@ -1,0 +1,9 @@
+# Decisions and rulings
+
+Each entry: what was decided, why, and what it costs if wrong. Plan: `docs/plans/2026-11-11-kaffa-tier1.md`.
+
+- **Branch:** work happens on `feat/tier1`; `main` holds only the scaffold. Why: keeps a reviewable range. Cost if wrong: none.
+- **Local database is PGlite, production is Neon.** Why: the app runs with zero setup for a reviewer, and one Drizzle schema serves both. Cost if wrong: driver-specific bugs, caught by running the same tests against Neon.
+- **Plot geometry is stored as GeoJSON `jsonb` plus bounding-box columns, not a PostGIS column.** Why: PGlite has no PostGIS, and overlap checks run in `src/domain/geometry.ts` with a bbox prefilter, which is fast enough for one exporter's plots and keeps all rules in one tested place. Deviation from the spec's "PostGIS finds overlapping plots". Cost if wrong: overlap checks slow down past tens of thousands of plots; PostGIS can be added on Neon later without changing the domain API.
+- **Hole splitting uses Turf `intersect` with two half-plane rectangles**, not an extra clipping library. Why: Turf 7 already ships a robust clipper; one dependency fewer. Cost if wrong: none expected.
+- **Every integration key is optional.** Without a key the integration uses recorded fixtures and the UI labels it simulated. Why: the demo must run end to end on any machine. Cost if wrong: a reviewer could mistake fixtures for live data, so the label is mandatory.
