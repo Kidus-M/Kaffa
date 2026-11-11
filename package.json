@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "db:seed": "tsx scripts/seed.mts",
     "db:migrate": "tsx scripts/migrate.mts",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "postinstall": "node -e \"require('fs').copyFileSync('node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs','public/maplibre-gl-worker.mjs')\""
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",
