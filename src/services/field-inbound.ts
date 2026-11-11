@@ -81,7 +81,7 @@ async function process(msg: Inbound, deps: InboundDeps): Promise<InboundResult> 
     // A link works once: the token rotates, so a forwarded or leaked link cannot take over the account.
     await db
       .update(fieldAgents)
-      .set({ telegramChatId: msg.chatId, registrationToken: `${agent.id}-${randomBytes(9).toString("base64url")}` })
+      .set({ telegramChatId: msg.chatId, registrationToken: randomBytes(24).toString("base64url") })
       .where(eq(fieldAgents.id, agent.id));
     await recordEvent(db, { orgId: agent.orgId, type: "field_agent.registered", payload: { fieldAgentId: agent.id } });
     await send(deps, { ...agent, telegramChatId: msg.chatId }, COPY.welcome[agent.language], {
