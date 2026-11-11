@@ -1,26 +1,69 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Kaffa palette. Colour carries meaning: each status has one colour, used nowhere else.
+ * Paper is a cool sage, not cream; structure is canopy green.
+ */
+@theme {
+  --color-paper: #f1f4f0;
+  --color-sheet: #fbfcfa;
+  --color-ink: #1c2420;
+  --color-ink-soft: #55615b;
+  --color-rule: #d7ded8;
+  --color-canopy: #1e4a37;
+  --color-canopy-soft: #e3ece6;
+
+  --color-clear: #2e7a4c;
+  --color-review: #c48514;
+  --color-blocked: #b0263a;
+  --color-unchecked: #8b938e;
+
+  /* Latin from Instrument Sans; Ge'ez script falls through to Noto Sans Ethiopic. */
+  --font-sans: var(--font-instrument), var(--font-noto-ethiopic), ui-sans-serif, system-ui, sans-serif;
+  --font-amharic: var(--font-noto-ethiopic), var(--font-instrument), sans-serif;
+
+  --radius-tile: 3px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    font-kerning: normal;
+  }
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-canopy);
+    outline-offset: 2px;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* The plot strip: one tile per plot, like beans on a drying bed. */
+@keyframes settle {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+.tile-settle {
+  animation: settle 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
