@@ -68,24 +68,30 @@ export function FieldApp() {
   const stopRef = useRef<() => void>(() => {});
 
   const load = useCallback(async (demo: string | null) => {
-    setError(null);
     const res = await fetch("/api/field/session", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(identity(demo)) });
     if (res.status === 401) {
       setSession(null);
       setError(window.Telegram?.WebApp?.initData ? "This Telegram account is not connected to Kaffa yet. Open your personal link from the exporter." : null);
       return;
     }
+    setError(null);
     setSession(await res.json());
   }, []);
 
   useEffect(() => {
     window.Telegram?.WebApp?.ready();
     window.Telegram?.WebApp?.expand();
-    void load(null);
+    // Inside Telegram, signed init data identifies the field agent on first load.
+    fetch("/api/field/session", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(identity(null)) })
+      .then(async (res) => {
+        if (res.ok) setSession(await res.json());
+        else if (window.Telegram?.WebApp?.initData) setError("This Telegram account is not connected to Kaffa yet. Open your personal link from the exporter.");
+      })
+      .catch(() => setError("No connection. Try again when you have signal."));
     const online = () => void flushQueue();
     window.addEventListener("online", online);
     return () => window.removeEventListener("online", online);
-  }, [load]);
+  }, []);
 
   const t = COPY[session?.agent.language ?? "en"];
 
