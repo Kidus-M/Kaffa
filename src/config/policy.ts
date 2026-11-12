@@ -42,3 +42,32 @@ export const REQUIRED_SOURCES = ["gfw_loss", "gfw_alerts"] as const;
 
 /** EU information system limit per due diligence statement. */
 export const EU_MAX_GEOJSON_BYTES = 25 * 1024 * 1024;
+
+/** Identity resolution. A merge is proposed at or above PROPOSE; above AUTO it may run alone if the exporter allows it. Design choices. */
+export const MERGE_PROPOSE_SCORE = 0.82;
+export const MERGE_AUTO_SCORE = 0.95;
+
+/**
+ * Plausible green-coffee output per hectare. Ethiopia's national average is about 0.9 t/ha
+ * (USDA, via Qahwa World); a delivery is flagged when it exceeds that times the tolerance,
+ * which allows for well-managed farms. Design choice.
+ */
+export const YIELD_KG_PER_HA: Record<string, number> = { default: 900 };
+export const YIELD_TOLERANCE = 1.5;
+
+/** Field visit planning. Design choices. */
+export const VISIT_MINUTES = 40;
+export const WORKDAY_MINUTES = 7 * 60;
+export const RAIN_SKIP_MM = 10;
+export const RAIN_SKIP_PROBABILITY = 70;
+/** Without road data: straight-line distance times this detour factor, at this speed. */
+export const ROAD_DETOUR = 1.4;
+export const ROAD_KMH = 22;
+
+/** Container planner: a 20-foot container holds 320 bags of 60 kg. */
+export const CONTAINER_KG = 19_200;
+
+/** Regulation copilot: lexical scores below this count as no supporting passage. */
+export const COPILOT_MIN_SCORE = 2.5;
+/** ...and the passage must contain at least this share of the question's terms. */
+export const COPILOT_MIN_COVERAGE = 0.4;

@@ -48,3 +48,25 @@ export function escalationText(input: { agentName: string; items: ChaseItem[]; h
   const refs = input.items.map((i) => i.plotRef).join(", ");
   return `${input.agentName} has not replied in ${input.hours} hours about ${refs}. These plots hold their lots until fixed.`;
 }
+
+const PLAN_WORDS: Record<Language, { title: (date: string) => string; start: string; rain: string; home: (min: number) => string }> = {
+  am: {
+    title: (date) => `የ${date} የጉብኝት እቅድ፦`,
+    start: "ከማህበሩ ይጀምሩ፤ በዚህ ቅደም ተከተል ይጎብኙ፦",
+    rain: "ዝናብ ስለሚጠበቅ ይህ ቀን ተዘሏል።",
+    home: (min) => `ጠቅላላ የጉዞ ጊዜ፦ ${min} ደቂቃ ገደማ።`,
+  },
+  en: {
+    title: (date) => `Visit plan for ${date}:`,
+    start: "Start from the cooperative and visit in this order:",
+    rain: "Heavy rain is forecast, so this day was skipped.",
+    home: (min) => `Total travel about ${min} minutes.`,
+  },
+};
+
+/** The day plan a field agent receives in Telegram. Amharic needs a native speaker's check. */
+export function dayPlanText(input: { language: Language; date: string; stops: { label: string; need: string }[]; travelMinutes: number; skippedRain?: string[] }): string {
+  const w = PLAN_WORDS[input.language];
+  const lines = input.stops.map((s, i) => `${i + 1}. ${s.label}: ${NEED_TEXT[input.language][s.need as GapNeed] ?? s.need}`);
+  return [w.title(input.date), w.start, ...lines, w.home(input.travelMinutes), ...(input.skippedRain?.length ? [`${input.skippedRain.join(", ")}: ${w.rain}`] : [])].join("\n");
+}

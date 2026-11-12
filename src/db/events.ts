@@ -7,7 +7,7 @@ import { appendEntry, verifyChain, type LedgerEntry } from "@/domain/ledger";
 import type { Db } from "./client";
 import { ledgerEntries } from "./schema";
 
-const MAX_ATTEMPTS = 5;
+const MAX_ATTEMPTS = 10;
 
 const isUniqueViolation = (e: unknown) => {
   const err = e as { code?: string; cause?: { code?: string } };
@@ -38,7 +38,10 @@ export async function recordEvent(
       });
     } catch (e) {
       // Two writers took the same seq: the primary key rejected one. Retry on the new head.
-      if (attempt < MAX_ATTEMPTS && isUniqueViolation(e)) continue;
+      if (attempt < MAX_ATTEMPTS && isUniqueViolation(e)) {
+        await new Promise((r) => setTimeout(r, Math.random() * 20 * attempt));
+        continue;
+      }
       throw e;
     }
   }

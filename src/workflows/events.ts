@@ -6,4 +6,5 @@ export const EVENTS = {
   dailyRequested: "kaffa/daily.requested",
 } as const;
 
-export type Emit = (event: { name: string; data: Record<string, unknown> }) => Promise<void>;
+/** Resolves true when the event reached Inngest, false when it was handled inline or dropped. */
+export type Emit = (event: { name: string; data: Record<string, unknown> }) => Promise<boolean | void>;

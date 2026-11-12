@@ -9,7 +9,8 @@ const optional = z
 const schema = z.object({
   DATABASE_URL: optional,
   GEMINI_API_KEY: optional,
-  GEMINI_MODEL: z.string().default("gemini-2.5-flash"),
+  /** One model, or several separated by commas: later ones are fallbacks when one is overloaded or retired. */
+  GEMINI_MODEL: z.string().default("gemini-3.5-flash,gemini-3.5-flash-lite"),
   GFW_API_KEY: optional,
   GFW_ORIGIN: optional,
   TELEGRAM_BOT_TOKEN: optional,
@@ -18,6 +19,14 @@ const schema = z.object({
   INNGEST_EVENT_KEY: optional,
   INNGEST_SIGNING_KEY: optional,
   CRON_SECRET: optional,
+  ORS_API_KEY: optional,
+  GMAIL_CLIENT_ID: optional,
+  GMAIL_CLIENT_SECRET: optional,
+  GMAIL_REFRESH_TOKEN: optional,
+  GMAIL_QUERY: z.string().default("label:kaffa newer_than:30d"),
+  BREVO_API_KEY: optional,
+  BREVO_SENDER: optional,
+  GEMINI_EMBEDDING_MODEL: z.string().default("gemini-embedding-001"),
   APP_URL: z.url().default("http://localhost:3000"),
 });
 

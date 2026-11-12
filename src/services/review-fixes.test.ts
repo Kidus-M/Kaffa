@@ -1,12 +1,13 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { and, eq, inArray } from "drizzle-orm";
 import { createPgliteDb, type Db } from "@/db/client";
-import { fieldAgents, gaps, lotPlots, lots, plots } from "@/db/schema";
+import { fieldAgents, flags, gaps, lotPlots, lots, plots } from "@/db/schema";
 import { DEMO_ORG_ID } from "@/db/seed-data";
 import { seedDemo } from "@/db/seed";
 import type { SourceResult } from "@/domain/status";
 import type { GfwClient } from "@/integrations/gfw";
 import { handleInbound, type InboundDeps } from "./field-inbound";
+import { clearFlag } from "./custody";
 import { exportLot } from "./lot-export";
 import { refreshLots } from "./lots";
 import { acceptReviewPlot, recapturePlot, removePlotFromLot } from "./plots";
@@ -85,6 +86,9 @@ describe("exports", () => {
     const ids = (await db.select().from(lotPlots).where(eq(lotPlots.lotId, lot.id))).map((r) => r.plotId);
     await db.update(plots).set({ status: "clear" }).where(inArray(plots.id, ids));
     await db.update(gaps).set({ status: "resolved" }).where(inArray(gaps.plotId, ids));
+    // HMB-L4 carries the demo's supply chain flags; a person clears them with a reason.
+    for (const f of await db.select().from(flags).where(and(eq(flags.lotId, lot.id), eq(flags.status, "open"))))
+      await clearFlag(db, { orgId: org, flagId: f.id, reason: "Second plot verified on site; the farmer's deliveries are plausible." });
     await refreshLots(db, org, ids);
 
     const ready = await exportLot(db, { lotRef: "HMB-L4", token: "portal-scheldt-9b1d7e" });

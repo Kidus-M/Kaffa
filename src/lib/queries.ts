@@ -10,6 +10,7 @@ import {
   approvals,
   checks,
   farmers,
+  flags,
   fieldAgents,
   gaps,
   ledgerEntries,
@@ -34,7 +35,7 @@ export const daysUntil = (iso: string, from = today()) =>
   Math.ceil((Date.parse(`${iso}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS);
 
 export type PlotTile = { id: string; ref: string; status: PlotStatus; reviewAccepted: boolean; openRequests: number };
-export type LotView = { id: string; ref: string; grade: string; quantityKg: number; state: "ready" | "held"; plots: PlotTile[] };
+export type LotView = { id: string; ref: string; grade: string; quantityKg: number; state: "ready" | "held"; plots: PlotTile[]; openFlags: number };
 export type ShipmentView = {
   id: string;
   ref: string;
@@ -47,7 +48,7 @@ export type ShipmentView = {
 };
 
 /** Days each field agent took to close past requests: the forecast's evidence. */
-async function resolutionHistory(db: Db, orgId: string) {
+export async function resolutionHistory(db: Db, orgId: string) {
   const rows = await db
     .select({ fieldAgentId: gaps.fieldAgentId, openedAt: gaps.openedAt, resolvedAt: gaps.resolvedAt })
     .from(gaps)
@@ -83,6 +84,7 @@ export async function getShipments(db: Db, orgId: string): Promise<ShipmentView[
   const openByPlot = new Map<string, number>();
   for (const g of openGaps) openByPlot.set(g.plotId, (openByPlot.get(g.plotId) ?? 0) + 1);
   const history = await resolutionHistory(db, orgId);
+  const openFlags = await db.select({ lotId: flags.lotId }).from(flags).where(and(eq(flags.orgId, orgId), eq(flags.status, "open")));
 
   return ships.map((s) => {
     const shipLots = lotRows.filter((l) => l.shipmentId === s.id);
@@ -92,6 +94,7 @@ export async function getShipments(db: Db, orgId: string): Promise<ShipmentView[
       grade: l.grade,
       quantityKg: l.quantityKg,
       state: l.state,
+      openFlags: openFlags.filter((f) => f.lotId === l.id).length,
       plots: tileRows
         .filter((t) => t.lotId === l.id)
         .map((t) => ({ id: t.id, ref: t.ref, status: t.status, reviewAccepted: t.reviewAccepted, openRequests: openByPlot.get(t.id) ?? 0 })),

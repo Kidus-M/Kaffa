@@ -13,9 +13,9 @@ beforeAll(async () => {
 });
 
 describe("seedDemo", () => {
-  it("creates 40 synthetic plots validated by the real rules", async () => {
+  it("creates 52 synthetic plots validated by the real rules", async () => {
     const rows = await db.select().from(plots).where(eq(plots.orgId, DEMO_ORG_ID));
-    expect(rows).toHaveLength(40);
+    expect(rows).toHaveLength(52);
     expect(rows.every((p) => p.synthetic)).toBe(true);
     const codesOf = (ref: string) => rows.find((p) => p.ref === ref)!.issues.map((i) => i.code);
     expect(codesOf("KNG-007")).toContain("swapped_coordinates");
@@ -46,7 +46,7 @@ describe("seedDemo", () => {
 
   it("is idempotent and leaves a verifiable ledger", async () => {
     await seedDemo(db);
-    expect(await db.select().from(plots).where(eq(plots.orgId, DEMO_ORG_ID))).toHaveLength(40);
+    expect(await db.select().from(plots).where(eq(plots.orgId, DEMO_ORG_ID))).toHaveLength(52);
     expect((await loadChain(db, DEMO_ORG_ID)).verification.ok).toBe(true);
   });
 });

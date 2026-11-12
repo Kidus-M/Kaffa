@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { bbox } from "@turf/turf";
 import { gapsForPlot } from "@/domain/gaps";
@@ -8,8 +9,12 @@ import * as s from "./schema";
 import {
   COOPS,
   DEMO_ORG_ID,
+  FARMER_PHONES,
   FIELD_AGENTS,
   LOTS,
+  OVER_DELIVERY,
+  SITES,
+  UNMAPPED_SUPPLIER,
   RESOLUTION_HISTORY_DAYS,
   SHIPMENTS,
   buildSeedPlots,
@@ -20,12 +25,17 @@ const DAY_MS = 86_400_000;
 const ORG_TABLES = [
   s.cooperatives, s.fieldAgents, s.farmers, s.plots, s.checks, s.shipments, s.lots,
   s.gaps, s.messages, s.approvals, s.ledgerEntries, s.agentRuns, s.intakeBatches, s.intakeRows,
+  s.farmerAliases, s.sites, s.deliveries, s.flags, s.autonomyPolicies, s.visitPlans, s.questions, s.inboundEmails,
 ] as const;
 
 function agentFor(ref: string): string {
   if (ref.startsWith("HMB")) return "fa_chaltu";
-  return Number(ref.slice(4)) <= 10 ? "fa_tigist" : "fa_dawit";
+  const n = Number(ref.slice(4));
+  return n <= 10 || n > 20 ? "fa_tigist" : "fa_dawit";
 }
+
+/** The unguessable code behind each lot's public verification page; fixed for the demo. */
+export const lotPublicCode = (ref: string) => createHash("sha256").update(`kaffa-demo-lot-${ref}`).digest("hex").slice(0, 12);
 
 /** Resets the demo organisation to a known state. Every record is synthetic. */
 export async function seedDemo(db: Db, now = new Date()): Promise<void> {
@@ -58,16 +68,18 @@ export async function seedDemo(db: Db, now = new Date()): Promise<void> {
     return { seed: p, v, stored, box, id: `plot_${p.ref}`, farmerId: `farmer_${p.ref}` };
   });
 
-  await db.insert(s.farmers).values(
-    prepared.map(({ seed, farmerId }) => ({
+  await db.insert(s.farmers).values([
+    ...prepared.map(({ seed, farmerId }) => ({
       id: farmerId,
       orgId,
       cooperativeId: seed.cooperativeId,
-      ...farmerName(seed.farmerIndex + (seed.cooperativeId === "coop_hambela" ? 10 : 0)),
+      ...(seed.farmer ?? farmerName(seed.farmerIndex + (seed.cooperativeId === "coop_hambela" ? 10 : 0))),
+      phone: seed.farmer?.phone ?? FARMER_PHONES[seed.ref] ?? null,
       village: seed.cooperativeId === "coop_konga" ? "Konga" : "Wamena",
       synthetic: true,
     })),
-  );
+    { id: UNMAPPED_SUPPLIER.id, orgId, cooperativeId: UNMAPPED_SUPPLIER.cooperativeId, name: UNMAPPED_SUPPLIER.name, nameLatin: UNMAPPED_SUPPLIER.name, village: "Buku", synthetic: true },
+  ]);
   await db.insert(s.plots).values(
     prepared.map(({ seed, v, stored, box, id, farmerId }) => ({
       id,
@@ -94,20 +106,52 @@ export async function seedDemo(db: Db, now = new Date()): Promise<void> {
     SHIPMENTS.map(({ lots: _lots, ...sh }) => ({ ...sh, orgId, synthetic: true })),
   );
   for (const lot of LOTS) {
-    const shipment = SHIPMENTS.find((sh) => sh.lots.includes(lot.ref))!;
+    const shipment = SHIPMENTS.find((sh) => sh.lots.includes(lot.ref));
     const lotId = `lot_${lot.ref}`;
     await db.insert(s.lots).values({
       id: lotId,
       orgId,
-      shipmentId: shipment.id,
+      shipmentId: shipment?.id ?? null,
       ref: lot.ref,
       grade: lot.grade,
       quantityKg: 9_600,
-      valueUsd: 57_600,
+      valueUsd: lot.grade.endsWith("G1") ? 57_600 : 52_800,
+      publicCode: lotPublicCode(lot.ref),
       synthetic: true,
     });
     await db.insert(s.lotPlots).values(lot.plotRefs(lot.prefix).map((ref) => ({ lotId, plotId: `plot_${ref}` })));
   }
+
+  // Chain of custody: every plot delivers to a collector or washing station, in proportion
+  // to its area, so each lot's deliveries add up to its weight. Two deliberate anomalies
+  // in HMB-L4 give the supply chain auditor something real to find.
+  await db.insert(s.sites).values(SITES.map((site) => ({ ...site, orgId, synthetic: true })));
+  const deliveryRows: (typeof s.deliveries.$inferInsert)[] = [];
+  for (const lot of LOTS) {
+    const lotId = `lot_${lot.ref}`;
+    const members = prepared.filter((p) => lot.plotRefs(lot.prefix).includes(p.seed.ref));
+    const area = (p: (typeof members)[number]) => p.v.areaHa ?? p.seed.declaredAreaHa;
+    const extraKg = lot.ref === UNMAPPED_SUPPLIER.lotRef ? UNMAPPED_SUPPLIER.kg : 0;
+    const over = members.find((m) => m.seed.ref === OVER_DELIVERY.plotRef);
+    const overKg = over ? Math.round(area(over) * 900 * OVER_DELIVERY.factor) : 0;
+    const rest = members.filter((m) => m !== over);
+    const restArea = rest.reduce((t, m) => t + area(m), 0);
+    const restKg = 9_600 - extraKg - overKg;
+    let allocated = 0;
+    rest.forEach((m, i) => {
+      const kg = i === rest.length - 1 ? restKg - allocated : Math.round((restKg * area(m)) / restArea);
+      allocated += kg;
+      const n = Number(m.seed.ref.slice(4));
+      const siteId = m.seed.cooperativeId === "coop_konga" ? (n % 2 ? "col_konga_a" : "col_konga_b") : n % 3 === 0 ? "ws_hambela" : "col_hambela";
+      deliveryRows.push({ orgId, farmerId: m.farmerId, plotId: m.id, siteId, lotId, kg, deliveredOn: `2026-11-${String(1 + (n % 9)).padStart(2, "0")}`, synthetic: true });
+    });
+    if (over) deliveryRows.push({ orgId, farmerId: over.farmerId, plotId: over.id, siteId: "col_hambela", lotId, kg: overKg, deliveredOn: "2026-11-06", synthetic: true });
+    if (extraKg) deliveryRows.push({ orgId, farmerId: UNMAPPED_SUPPLIER.id, plotId: null, siteId: "col_hambela", lotId, kg: extraKg, deliveredOn: "2026-11-07", synthetic: true });
+  }
+  await db.insert(s.deliveries).values(deliveryRows);
+
+  // The demo exporter lets the buyer liaison answer portal questions from stored evidence.
+  await db.insert(s.autonomyPolicies).values({ orgId, action: "answer_buyer", mode: "auto" });
 
   // Field requests for problems only a person on site can fix.
   const overlapping = new Set(
@@ -148,4 +192,10 @@ export async function seedDemo(db: Db, now = new Date()): Promise<void> {
     type: "demo.seeded",
     payload: { plots: prepared.length, openRequests: openGaps.length, synthetic: true },
   });
+
+  // The supply chain auditor and identity resolution run once over the fresh data.
+  const { auditLots } = await import("@/services/custody");
+  const { scanDuplicates } = await import("@/services/identity");
+  await auditLots(db, orgId);
+  await scanDuplicates(db, orgId);
 }

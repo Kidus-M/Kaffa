@@ -9,7 +9,8 @@ import type { Db } from "@/db/client";
 import { recordEvent } from "@/db/events";
 import { cooperatives, farmers, fieldAgents, gaps, intakeBatches, intakeRows, plots } from "@/db/schema";
 import { gapsForPlot } from "@/domain/gaps";
-import { startTrace } from "./trace";
+import { checkNewFarmer } from "./identity";
+import { startTrace, type Trace } from "./trace";
 
 const GEEZ = /[ሀ-፿ⶀ-⷟꬀-꬯]/;
 
@@ -36,7 +37,7 @@ async function leastLoadedAgent(db: Db, orgId: string, cooperativeId: string): P
   return agent?.id ?? null;
 }
 
-async function createPlotFromRow(db: Db, input: { orgId: string; cooperativeId: string; row: IntakeRow }) {
+async function createPlotFromRow(db: Db, input: { orgId: string; cooperativeId: string; row: IntakeRow; trace?: Trace }) {
   const p = rowToPlotInput(input.row);
   const ref = await nextRef(db, input.orgId, input.cooperativeId);
   const fieldAgentId = await leastLoadedAgent(db, input.orgId, input.cooperativeId);
@@ -72,6 +73,8 @@ async function createPlotFromRow(db: Db, input: { orgId: string; cooperativeId: 
       maxLat: box?.[3],
     })
     .returning({ id: plots.id });
+  // Identity resolution: is this farmer already on record under another spelling?
+  await checkNewFarmer(db, input.orgId, farmer.id, input.trace);
   const requests = gapsForPlot({ issueCodes: p.validation.issues.map((i) => i.code), status: "not_checked", overlaps: false });
   if (requests.length && fieldAgentId) {
     await db.insert(gaps).values(requests.map((g) => ({ orgId: input.orgId, plotId: plot.id, fieldAgentId, need: g.need, reason: g.reason })));
@@ -120,7 +123,7 @@ export async function createIntakeBatch(
       await db.insert(intakeRows).values({ orgId: input.orgId, batchId: batch.id, idx: i, data: row, reviewFields: pending.fields, status: "pending" });
       continue;
     }
-    const plot = await createPlotFromRow(db, { orgId: input.orgId, cooperativeId: input.cooperativeId, row });
+    const plot = await createPlotFromRow(db, { orgId: input.orgId, cooperativeId: input.cooperativeId, row, trace });
     created.push(plot);
     await db.insert(intakeRows).values({ orgId: input.orgId, batchId: batch.id, idx: i, data: row, status: "accepted", plotId: plot.plotId });
   }

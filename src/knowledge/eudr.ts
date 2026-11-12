@@ -1,0 +1,187 @@
+/**
+ * The regulation copilot's knowledge: plain-language summaries of the EUDR (Regulation
+ * (EU) 2023/1115) as amended by Regulations (EU) 2024/3234 and 2025/2650, and of the EU
+ * information system's GeoJSON guidance. Each passage names the provision it summarises,
+ * so every answer can cite it. They support decisions; the Official Journal text governs.
+ */
+export type Passage = { id: string; source: string; ref: string; title: string; text: string };
+
+const EUDR = "Regulation (EU) 2023/1115";
+
+export const PASSAGES: Passage[] = [
+  {
+    id: "art1",
+    source: EUDR,
+    ref: "Article 1 and Annex I",
+    title: "Which products are covered",
+    text: "The regulation covers seven commodities: cattle, cocoa, coffee, oil palm, rubber, soya and wood, and the products listed in Annex I that contain or are made from them. For coffee, Annex I covers HS heading 0901: coffee whether or not roasted or decaffeinated, coffee husks and skins, and coffee substitutes containing coffee.",
+  },
+  {
+    id: "art2-forest",
+    source: EUDR,
+    ref: "Article 2(4)",
+    title: "What counts as forest",
+    text: "Forest means land spanning more than 0.5 hectares with trees higher than 5 metres and a canopy cover of more than 10 percent, or trees able to reach those thresholds in situ. Land that is predominantly under agricultural or urban use is excluded. Agroforestry systems where crops such as coffee grow under tree cover are agricultural use, but converting a forest into such a system after the cut-off date is still deforestation.",
+  },
+  {
+    id: "art2-deforestation",
+    source: EUDR,
+    ref: "Article 2(3)",
+    title: "What counts as deforestation",
+    text: "Deforestation means the conversion of forest to agricultural use, whether human-induced or not. Forest degradation, which matters for wood, means structural changes to forest cover such as converting primary forest into plantation forest.",
+  },
+  {
+    id: "art2-deforestation-free",
+    source: EUDR,
+    ref: "Article 2(13)",
+    title: "Deforestation-free and the cut-off date",
+    text: "A product is deforestation-free if the commodities it contains were produced on land that has not been subject to deforestation after 31 December 2020, the cut-off date. Tree cover lost before the cut-off date does not make coffee non-compliant; loss after it does, regardless of how much.",
+  },
+  {
+    id: "art2-geolocation",
+    source: EUDR,
+    ref: "Article 2(28)",
+    title: "Geolocation of a plot of land",
+    text: "Geolocation means the location of a plot of land described by latitude and longitude with at least six decimal digits. For plots of land of more than four hectares used to produce commodities other than cattle, the geolocation must be a polygon with enough points to describe the plot's perimeter. A plot of four hectares or less may be described by a single point.",
+  },
+  {
+    id: "art2-plot",
+    source: EUDR,
+    ref: "Article 2(27)",
+    title: "Plot of land",
+    text: "A plot of land is land within a single real-estate property, as recognised by the law of the country of production, with sufficiently homogeneous conditions to allow its risk of deforestation to be evaluated as a whole.",
+  },
+  {
+    id: "art2-legislation",
+    source: EUDR,
+    ref: "Article 2(40)",
+    title: "Relevant legislation of the country of production",
+    text: "Legality is judged against the laws of the country of production on land use rights, environmental protection, forest management, third parties' rights, labour rights, human rights protected under international law, free prior and informed consent, tax, anti-corruption, and trade and customs regulations.",
+  },
+  {
+    id: "art3",
+    source: EUDR,
+    ref: "Article 3",
+    title: "The prohibition",
+    text: "Relevant commodities and products may be placed on the EU market, made available on it, or exported from it only if three conditions all hold: they are deforestation-free, they were produced in accordance with the relevant legislation of the country of production, and they are covered by a due diligence statement.",
+  },
+  {
+    id: "art4",
+    source: EUDR,
+    ref: "Article 4",
+    title: "Operators' obligations",
+    text: "Operators must exercise due diligence before placing relevant products on the market or exporting them, and submit a due diligence statement through the EU information system. By submitting it, the operator takes responsibility for the products' compliance. An operator who cannot conclude that the risk of non-compliance is negligible must not place the products on the market.",
+  },
+  {
+    id: "amend-2025",
+    source: "Regulation (EU) 2025/2650",
+    ref: "Amending Regulation (EU) 2025/2650",
+    title: "Simplification for downstream operators and small producers",
+    text: "The 2025 amendment simplifies the chain: the due diligence statement is submitted by the operator that first places the products on the EU market, and downstream operators and traders no longer submit their own statements. Micro and small primary operators submit a one-off simplified declaration instead of repeated statements. The Commission was asked to review the regulation's simplification by 30 April 2026.",
+  },
+  {
+    id: "art38",
+    source: "Regulation (EU) 2023/1115 as amended by Regulations (EU) 2024/3234 and 2025/2650",
+    ref: "Article 38",
+    title: "When the rules apply",
+    text: "After two postponements, the main obligations apply from 30 December 2026 for large and medium operators and traders, and from 30 June 2027 for micro and small undertakings. The cut-off date for deforestation stays 31 December 2020.",
+  },
+  {
+    id: "art8",
+    source: EUDR,
+    ref: "Article 8",
+    title: "What due diligence involves",
+    text: "Due diligence has three parts: collecting the information, documents and data required by Article 9; assessing the risk of non-compliance under Article 10; and taking risk mitigation measures under Article 11 where that risk is not negligible.",
+  },
+  {
+    id: "art9",
+    source: EUDR,
+    ref: "Article 9(1)",
+    title: "Information an operator must collect",
+    text: "The operator must collect: a description of the product with its trade name and type; the quantity; the country of production; the geolocation of all plots of land where the commodities were produced; the date or time range of production; the names and addresses of suppliers and customers; adequately conclusive and verifiable information that the products are deforestation-free; and adequately conclusive and verifiable information that production complied with the relevant legislation of the country of production.",
+  },
+  {
+    id: "art9-mixing",
+    source: EUDR,
+    ref: "Article 9(1)(d) and Article 10(2)(j)",
+    title: "Mixing and every plot",
+    text: "Where a product contains commodities from several plots of land, the geolocation of every plot must be provided. The risk of mixing with products of unknown origin, or with products produced on land subject to deforestation, is a criterion in the risk assessment. A delivery larger than its mapped plots could produce is a signal of such mixing.",
+  },
+  {
+    id: "art10",
+    source: EUDR,
+    ref: "Article 10",
+    title: "Risk assessment",
+    text: "The risk assessment considers, among other things: the country's risk classification under Article 29; the presence of forests and of indigenous peoples in the production area; the prevalence of deforestation; the source, reliability and validity of the information collected; concerns about the country such as corruption or weak law enforcement; the complexity of the supply chain; and the risk of mixing with products of unknown origin. The assessment must be documented and reviewed at least once a year.",
+  },
+  {
+    id: "art11",
+    source: EUDR,
+    ref: "Article 11",
+    title: "Risk mitigation",
+    text: "Where the risk assessment finds a non-negligible risk, the operator must adopt mitigation measures adequate to reach negligible risk before placing the products on the market. Measures include requiring additional information, data or documents, and carrying out independent surveys or audits.",
+  },
+  {
+    id: "art12",
+    source: EUDR,
+    ref: "Article 12",
+    title: "Keeping records",
+    text: "Operators must keep their due diligence documentation for at least five years from the date the due diligence statement was submitted, and make it available to competent authorities on request. They must also review their due diligence system at least once a year.",
+  },
+  {
+    id: "art13",
+    source: EUDR,
+    ref: "Article 13",
+    title: "Simplified due diligence for low-risk countries",
+    text: "For products produced entirely in countries or parts of countries classified as low risk, operators must still collect the Article 9 information but need not carry out the risk assessment and mitigation steps, unless they become aware of information indicating a risk of non-compliance.",
+  },
+  {
+    id: "art29",
+    source: EUDR,
+    ref: "Article 29",
+    title: "Country benchmarking",
+    text: "The Commission classifies countries, or parts of them, as low, standard or high risk through implementing acts, based on criteria such as the rate of deforestation and the expansion of agricultural land for the relevant commodities. A country's classification affects how much due diligence is needed and how often authorities check. Check the latest implementing act for a given country's classification.",
+  },
+  {
+    id: "art16",
+    source: EUDR,
+    ref: "Article 16",
+    title: "Checks by authorities",
+    text: "Competent authorities check a share of operators each year that depends on the country's risk class: at least 9 percent of operators and of the quantity for products from high-risk countries, 3 percent for standard risk and 1 percent for low risk. Checks can include examining the due diligence system and documentation, and field audits and satellite monitoring.",
+  },
+  {
+    id: "art25",
+    source: EUDR,
+    ref: "Article 25",
+    title: "Penalties",
+    text: "Member States set penalties that must be effective, proportionate and dissuasive. They include fines with a maximum of at least 4 percent of the operator's total annual turnover in the EU, confiscation of the products and of revenue from them, temporary exclusion from public procurement and public funding, and a temporary prohibition on placing products on the market.",
+  },
+  {
+    id: "art33",
+    source: EUDR,
+    ref: "Article 33",
+    title: "The information system",
+    text: "Due diligence statements are submitted through the EU information system, which gives each statement a reference number. Operators further down the chain can refer to that reference number, and customs use it when products enter or leave the EU.",
+  },
+  {
+    id: "geojson-format",
+    source: "EU information system: GeoJSON file description",
+    ref: "GeoJSON guidance",
+    title: "Uploading plot geolocation",
+    text: "Plot geolocation is uploaded as GeoJSON in WGS 84 coordinates. Each plot is a Point or a Polygon (or MultiPolygon), with coordinates of at least six decimal places; the system truncates longer coordinates, so a shape must stay valid after truncation. Polygons must be closed and must not cross themselves. A Point may carry the plot's area; without it the system assumes four hectares. One statement's geolocation file may not exceed 25 megabytes.",
+  },
+  {
+    id: "geojson-holes",
+    source: "EU information system: GeoJSON file description",
+    ref: "GeoJSON guidance",
+    title: "Polygons with holes",
+    text: "Polygons with interior rings (holes) are not accepted. A plot that surrounds land excluded from it, such as a patch of remaining forest, should be described by splitting it into polygons without holes.",
+  },
+  {
+    id: "smallholders",
+    source: EUDR,
+    ref: "Articles 2(28), 9 and 13 with recital 39",
+    title: "Smallholders",
+    text: "Smallholder plots of four hectares or less can be geolocated with a single point taken with a phone. Operators sourcing from cooperatives must still provide the geolocation of every plot that supplied the product; the cooperative or exporter usually collects it on the operator's behalf.",
+  },
+];

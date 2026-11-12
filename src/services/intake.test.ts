@@ -39,10 +39,10 @@ describe("createIntakeBatch", () => {
       ],
     });
     expect(r).toMatchObject({ created: 2, review: 1 });
-    expect(r.createdRefs).toEqual(["KNG-021", "KNG-022"]);
+    expect(r.createdRefs).toEqual(["KNG-027", "KNG-028"]);
     expect(r.screenable).toHaveLength(1);
 
-    const [p] = await db.select().from(plots).where(eq(plots.ref, "KNG-022"));
+    const [p] = await db.select().from(plots).where(eq(plots.ref, "KNG-028"));
     expect(p.issues.map((i) => i.code)).toContain("swapped_coordinates");
     expect(p.fieldAgentId).toBeTruthy();
     expect((await db.select().from(gaps).where(and(eq(gaps.plotId, p.id), eq(gaps.status, "open"))))[0].need).toBe("confirm");
@@ -67,9 +67,9 @@ describe("resolveIntakeRow", () => {
     expect(bad).toMatchObject({ ok: false });
 
     const good = await resolveIntakeRow(db, { orgId: DEMO_ORG_ID, rowId: pending.id, decision: "accept", values: { lat: 6.106543 } });
-    expect(good).toMatchObject({ ok: true, plotRef: "KNG-023" });
+    expect(good).toMatchObject({ ok: true, plotRef: "KNG-029" });
     expect((await db.select().from(intakeRows).where(eq(intakeRows.id, pending.id)))[0].status).toBe("accepted");
-    expect(await db.select().from(plots).where(like(plots.ref, "KNG-02%"))).toHaveLength(4);
+    expect(await db.select().from(plots).where(like(plots.ref, "KNG-02%"))).toHaveLength(10);
   });
 
   it("can reject a row without creating anything", async () => {

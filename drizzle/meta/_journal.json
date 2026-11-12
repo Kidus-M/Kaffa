@@ -15,6 +15,13 @@
       "when": 1794414440870,
       "tag": "0001_intake",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794459156076,
+      "tag": "0002_tier2",
+      "breakpoints": true
     }
   ]
 }

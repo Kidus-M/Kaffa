@@ -122,6 +122,8 @@ export const shipments = pgTable(
     shipDate: text("ship_date").notNull(),
     contractVolumeKg: integer("contract_volume_kg").notNull(),
     portalToken: text("portal_token").notNull(),
+    /** Lowest acceptable grade, e.g. "G2" accepts G1 and G2. */
+    gradeRequired: text("grade_required").notNull().default("G2"),
     synthetic: synthetic(),
   },
   (t) => [uniqueIndex("shipments_portal_token").on(t.portalToken)],
@@ -136,6 +138,8 @@ export const lots = pgTable("lots", {
   quantityKg: integer("quantity_kg").notNull(),
   valueUsd: integer("value_usd").notNull(),
   state: text("state", { enum: ["ready", "held"] }).notNull().default("held"),
+  /** Unguessable code behind the lot's public QR verification page. */
+  publicCode: text("public_code"),
   synthetic: synthetic(),
 });
 
@@ -269,4 +273,140 @@ export const intakeRows = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("intake_rows_batch").on(t.batchId), index("intake_rows_status").on(t.orgId, t.status)],
+);
+
+/** Other spellings a farmer is known by, kept when two records are merged. */
+export const farmerAliases = pgTable(
+  "farmer_aliases",
+  {
+    id: id(),
+    orgId: orgId(),
+    farmerId: text("farmer_id").notNull(),
+    name: text("name").notNull(),
+    village: text("village"),
+    phone: text("phone"),
+    source: text("source").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("farmer_aliases_farmer").on(t.farmerId)],
+);
+
+/** Collectors and washing stations: the middle of the custody chain. */
+export const sites = pgTable("sites", {
+  id: id(),
+  orgId: orgId(),
+  kind: text("kind", { enum: ["collector", "washing_station"] }).notNull(),
+  name: text("name").notNull(),
+  cooperativeId: text("cooperative_id"),
+  /** For a collector: the washing station it delivers to. */
+  parentId: text("parent_id"),
+  synthetic: synthetic(),
+});
+
+/** Cherry or coffee handed over at a site, traced from plot to lot. Kg are green-coffee equivalent. */
+export const deliveries = pgTable(
+  "deliveries",
+  {
+    id: id(),
+    orgId: orgId(),
+    farmerId: text("farmer_id").notNull(),
+    plotId: text("plot_id"),
+    siteId: text("site_id").notNull(),
+    lotId: text("lot_id").notNull(),
+    kg: integer("kg").notNull(),
+    /** YYYY-MM-DD */
+    deliveredOn: text("delivered_on").notNull(),
+    synthetic: synthetic(),
+  },
+  (t) => [index("deliveries_lot").on(t.lotId), index("deliveries_farmer").on(t.farmerId)],
+);
+
+/** Raised by the supply chain auditor. An open flag holds its lot; clearing one needs a person and a reason. */
+export const flags = pgTable(
+  "flags",
+  {
+    id: id(),
+    orgId: orgId(),
+    kind: text("kind", { enum: ["volume_lot", "volume_farmer", "unmapped_supplier"] }).notNull(),
+    lotId: text("lot_id").notNull(),
+    subjectId: text("subject_id").notNull(),
+    detail: jsonb("detail").notNull(),
+    status: text("status", { enum: ["open", "cleared"] }).notNull().default("open"),
+    reason: text("reason"),
+    createdAt: createdAt(),
+    clearedAt: timestamp("cleared_at", { withTimezone: true, mode: "string" }),
+  },
+  (t) => [index("flags_lot").on(t.lotId)],
+);
+
+/** Per-organisation autonomy: whether an agent acts alone, asks first, or does nothing. */
+export const autonomyPolicies = pgTable(
+  "autonomy_policies",
+  {
+    orgId: orgId(),
+    action: text("action").notNull(),
+    mode: text("mode", { enum: ["auto", "ask", "off"] }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.orgId, t.action] })],
+);
+
+/** A field agent's planned visits, day by day, in route order. */
+export const visitPlans = pgTable("visit_plans", {
+  id: id(),
+  orgId: orgId(),
+  fieldAgentId: text("field_agent_id").notNull(),
+  plan: jsonb("plan").notNull(),
+  sentAt: timestamp("sent_at", { withTimezone: true, mode: "string" }),
+  createdAt: createdAt(),
+});
+
+/** Passages of the regulation and guidance, with embeddings, for cited answers. Shared by all organisations. */
+export const regPassages = pgTable("reg_passages", {
+  id: text("id").primaryKey(),
+  source: text("source").notNull(),
+  ref: text("ref").notNull(),
+  title: text("title").notNull(),
+  text: text("text").notNull(),
+  embedding: jsonb("embedding").$type<number[] | null>(),
+  embeddingModel: text("embedding_model"),
+});
+
+/** A question from a buyer (portal or email) or the exporter, with its cited answer. */
+export const questions = pgTable(
+  "questions",
+  {
+    id: id(),
+    orgId: orgId(),
+    shipmentId: text("shipment_id"),
+    channel: text("channel", { enum: ["portal", "email", "console"] }).notNull(),
+    asker: text("asker").notNull(),
+    question: text("question").notNull(),
+    answer: text("answer"),
+    citations: jsonb("citations").$type<{ id: string; label: string }[]>().notNull().default([]),
+    status: text("status", { enum: ["answered", "drafted", "needs_person"] }).notNull(),
+    mode: text("mode").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("questions_shipment").on(t.shipmentId)],
+);
+
+/** Buyer emails read from the exporter's inbox, and what Kaffa made of them. */
+export const inboundEmails = pgTable(
+  "inbound_emails",
+  {
+    id: id(),
+    orgId: orgId(),
+    messageId: text("message_id").notNull(),
+    fromAddress: text("from_address").notNull(),
+    subject: text("subject").notNull(),
+    body: text("body").notNull(),
+    receivedAt: text("received_at").notNull(),
+    kind: text("kind", { enum: ["contract", "question", "other"] }).notNull(),
+    extracted: jsonb("extracted"),
+    outcome: text("outcome").notNull(),
+    simulated: boolean("simulated").notNull().default(false),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("inbound_emails_message").on(t.orgId, t.messageId)],
 );

@@ -46,6 +46,34 @@ export function describeEvent(type: string, payload: unknown): string {
       return `Checks started for ${p.plots} plots.`;
     case "daily.ran":
       return `Daily run finished: ${p.rescreened} plots re-screened, ${p.openRequests} requests open.`;
+    case "flag.raised":
+      return `Lot ${p.lotRef} flagged: ${p.kind === "unmapped_supplier" ? "coffee from a supplier with no mapped plot" : p.kind === "volume_farmer" ? "a farmer delivered more than their plots can grow" : "more coffee than its plots can grow"} (${Number(p.deliveredKg).toLocaleString()} kg).`;
+    case "flag.cleared":
+      return `Flag on ${p.lotRef} cleared: "${p.reason}".`;
+    case "flag.closed":
+      return `Flag on ${p.lotRef} closed after the records changed.`;
+    case "farmer.merged":
+      return `Farmer records merged: ${p.merged} is ${p.keep}${refs ? ` (${refs})` : ""}.`;
+    case "allocation.changed":
+      return `Container plan changed: ${(p.changes as { lotRef: string }[]).map((c) => c.lotRef).join(", ")} moved.`;
+    case "approval.requested":
+      return `An agent asks for a decision: ${String(p.kind).replaceAll("_", " ")}.`;
+    case "shipment.created":
+      return `New shipment ${p.ref} for ${p.buyer}.`;
+    case "email.received":
+      return `Email read: "${p.subject}". ${p.outcome}`;
+    case "email.sent":
+      return "Approved reply sent to the buyer.";
+    case "email.approved":
+      return "Reply to a buyer approved.";
+    case "question.received":
+      return `Buyer question by ${p.channel}: ${p.status === "answered" ? "answered with citations" : p.status === "drafted" ? "answer drafted for approval" : "passed to you"}.`;
+    case "visits.planned":
+      return `Visits planned: ${p.plots} farms over ${p.days} day(s)${(p.skippedRain as string[])?.length ? `, avoiding rain on ${(p.skippedRain as string[]).join(", ")}` : ""}.`;
+    case "visits.sent":
+      return `Day plan for ${p.date} sent to a field agent.`;
+    case "autonomy.changed":
+      return `Autonomy changed: ${String(p.action).replaceAll("_", " ")} is now ${p.mode === "auto" ? "automatic" : p.mode === "ask" ? "ask first" : "off"}.`;
     default:
       return type.replaceAll(".", " ").replaceAll("_", " ");
   }

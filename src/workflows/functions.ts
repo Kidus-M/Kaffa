@@ -6,7 +6,12 @@ import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { recordEvent } from "@/db/events";
 import { gaps, orgs, plots } from "@/db/schema";
+import { computeBrief } from "@/services/brief";
 import { escalateChase, sendChase } from "@/services/chase";
+import { auditLots } from "@/services/custody";
+import { checkInbox } from "@/services/email-intake";
+import { proposePlan } from "@/services/planner";
+import { planAllVisits, sendDayPlans } from "@/services/visits";
 import { getAppDeps } from "@/services/deps";
 import { screenPlot } from "@/services/screening";
 import { runChase, type StepRunner } from "./chase-flow";
@@ -67,9 +72,30 @@ export const dailyRunFn = inngest.createFunction(
     if (plan.chase.length) {
       await step.sendEvent("chase-field-agents", plan.chase.map((data) => ({ name: EVENTS.chaseRequested, data })));
     }
+    // The other agents' daily work, one durable step each so a failure retries only that step.
+    await step.run("audit-volumes", async () => {
+      const { db } = await getAppDeps();
+      for (const orgId of plan.orgIds) await auditLots(db, orgId);
+    });
+    await step.run("read-inbox", async () => {
+      const deps = await getAppDeps();
+      for (const orgId of plan.orgIds) await checkInbox({ ...deps, query: deps.gmailQuery }, orgId);
+    });
+    await step.run("plan-visits", async () => {
+      const deps = await getAppDeps();
+      for (const orgId of plan.orgIds) {
+        await planAllVisits(deps, orgId);
+        await sendDayPlans(deps, orgId);
+      }
+    });
+    await step.run("plan-containers", async () => {
+      const { db } = await getAppDeps();
+      for (const orgId of plan.orgIds) await proposePlan(db, orgId);
+    });
     await step.run("brief", async () => {
       const { db } = await getAppDeps();
       for (const orgId of plan.orgIds) {
+        const brief = await computeBrief(db, orgId);
         const [{ open }] = await db
           .select({ open: sql<number>`count(*)::int` })
           .from(gaps)
@@ -77,7 +103,7 @@ export const dailyRunFn = inngest.createFunction(
         await recordEvent(db, {
           orgId,
           type: "daily.ran",
-          payload: { rescreened: plan.rescreen.filter((p) => p.orgId === orgId).length, openRequests: open },
+          payload: { rescreened: plan.rescreen.filter((p) => p.orgId === orgId).length, openRequests: open, brief: brief.map((b) => b.title) },
         });
       }
     });

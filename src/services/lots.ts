@@ -1,7 +1,7 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { recordEvent } from "@/db/events";
-import { gaps, lotPlots, lots, plots } from "@/db/schema";
+import { flags, gaps, lotPlots, lots, plots } from "@/db/schema";
 import { evaluateLot } from "@/domain/lots";
 
 /** Re-evaluates the lots that contain any of the given plots, and records every change of state. */
@@ -26,13 +26,17 @@ export async function refreshLotsByIds(db: Db, orgId: string, lotIds: string[]):
       .from(lotPlots)
       .innerJoin(plots, eq(plots.id, lotPlots.plotId))
       .where(eq(lotPlots.lotId, lotId));
-    const result = evaluateLot(rows);
+    const [{ openFlags }] = await db
+      .select({ openFlags: sql<number>`count(*)::int` })
+      .from(flags)
+      .where(and(eq(flags.lotId, lotId), eq(flags.status, "open")));
+    const result = evaluateLot(rows, { openFlags });
     if (result.state !== lot.state) {
       await db.update(lots).set({ state: result.state }).where(eq(lots.id, lotId));
       await recordEvent(db, {
         orgId,
         type: result.state === "ready" ? "lot.ready" : "lot.held",
-        payload: { lotRef: lot.ref, heldBy: rows.filter((r) => result.heldBy.includes(r.id)).map((r) => r.ref) },
+        payload: { lotRef: lot.ref, heldBy: rows.filter((r) => result.heldBy.includes(r.id)).map((r) => r.ref), openFlags },
       });
     }
   }

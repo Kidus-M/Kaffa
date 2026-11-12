@@ -85,4 +85,8 @@ describe("evaluateLot", () => {
   it("holds an empty lot", () => {
     expect(evaluateLot([]).state).toBe("held");
   });
+
+  it("holds a lot with an open supply chain flag even when every plot is clear", () => {
+    expect(evaluateLot([{ id: "a", status: "clear" }], { openFlags: 1 })).toEqual({ state: "held", heldBy: [] });
+  });
 });

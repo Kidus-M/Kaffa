@@ -43,7 +43,48 @@ export type SeedPlot = {
   geometry: PlotGeometry | null;
   declaredAreaHa: number;
   note?: string;
+  /** For plots beyond the first twenty: a farmer not in NAMES. */
+  farmer?: { name: string; nameLatin: string; phone?: string };
 };
+
+/** Phone numbers on record for a few farmers, so identity matching can use them. */
+export const FARMER_PHONES: Record<string, string> = { "KNG-001": "+251911200101", "KNG-008": "+251911200108" };
+
+/**
+ * Plots behind the two spare lots. KNG-021's farmer is KNG-001's farmer written another
+ * way in a second register, so identity resolution has a real duplicate to find.
+ */
+const EXTRA_FARMERS: Record<string, { name: string; nameLatin: string; phone?: string }[]> = {
+  coop_konga: [
+    { name: "Abebe Kebbede", nameLatin: "Abebe Kebbede", phone: "0911 200 101" },
+    { name: "መሰረት አያና", nameLatin: "Meseret Ayana" },
+    { name: "Yared Bogale", nameLatin: "Yared Bogale" },
+    { name: "ሂሩት ለማ", nameLatin: "Hirut Lemma" },
+    { name: "Solomon Tekle", nameLatin: "Solomon Tekle" },
+    { name: "Eyerusalem Fanta", nameLatin: "Eyerusalem Fanta" },
+  ],
+  coop_hambela: [
+    { name: "Galgalo Wario", nameLatin: "Galgalo Wario" },
+    { name: "Dima Kenne", nameLatin: "Dima Kenne" },
+    { name: "Halake Roba", nameLatin: "Halake Roba" },
+    { name: "Jarra Dabasa", nameLatin: "Jarra Dabasa" },
+    { name: "Wario Golicha", nameLatin: "Wario Golicha" },
+    { name: "Elema Huqa", nameLatin: "Elema Huqa" },
+  ],
+};
+
+/** A supplier who delivered into HMB-L4 but has no mapped plot: coffee of unknown origin. */
+export const UNMAPPED_SUPPLIER = { id: "farmer_unmapped_jarso", name: "Jarso Dube", cooperativeId: "coop_hambela", kg: 600, lotRef: "HMB-L4" };
+/** This plot's farmer delivered far more than the plot can grow. */
+export const OVER_DELIVERY = { plotRef: "HMB-014", factor: 2.6 };
+
+export const SITES = [
+  { id: "ws_konga", kind: "washing_station" as const, name: "Konga washing station (synthetic)", cooperativeId: "coop_konga", parentId: null },
+  { id: "col_konga_a", kind: "collector" as const, name: "Konga collector, Idido road (synthetic)", cooperativeId: "coop_konga", parentId: "ws_konga" },
+  { id: "col_konga_b", kind: "collector" as const, name: "Konga collector, Aricha (synthetic)", cooperativeId: "coop_konga", parentId: "ws_konga" },
+  { id: "ws_hambela", kind: "washing_station" as const, name: "Hambela washing station (synthetic)", cooperativeId: "coop_hambela", parentId: null },
+  { id: "col_hambela", kind: "collector" as const, name: "Hambela collector, Buku (synthetic)", cooperativeId: "coop_hambela", parentId: "ws_hambela" },
+];
 
 const mPerDegLat = 111_320;
 const mPerDegLon = (lat: number) => 111_320 * Math.cos((lat * Math.PI) / 180);
@@ -125,6 +166,27 @@ export function buildSeedPlots(seed = 2026): SeedPlot[] {
   if (open.geometry?.type === "Polygon") open.geometry = { type: "Polygon", coordinates: [open.geometry.coordinates[0].slice(0, -1)] };
   open.note = "Boundary not closed; repaired automatically";
 
+  // Plots behind the spare lots: larger, clean shapes, drawn from their own random stream
+  // so the first forty plots stay exactly as they were.
+  const extra = mulberry32(seed + 1);
+  for (const coop of COOPS) {
+    EXTRA_FARMERS[coop.id].forEach((farmer, k) => {
+      const ha = Math.round((1.6 + extra() * 0.8) * 100) / 100;
+      const centre: [number, number] = [
+        coop.center[0] + ((extra() - 0.5) * 5000) / mPerDegLon(coop.center[1]),
+        coop.center[1] + ((extra() - 0.5) * 5000) / mPerDegLat,
+      ];
+      out.push({
+        ref: `${coop.prefix}-${String(21 + k).padStart(3, "0")}`,
+        cooperativeId: coop.id,
+        farmerIndex: -1,
+        farmer,
+        declaredAreaHa: ha,
+        geometry: { type: "Polygon", coordinates: [farmShape(extra, centre, ha)] },
+      });
+    });
+  }
+
   return out;
 }
 
@@ -141,6 +203,7 @@ export const SHIPMENTS = [
     destinationPort: "Hamburg",
     shipDate: "2026-12-08",
     contractVolumeKg: 19_200,
+    gradeRequired: "G1",
     portalToken: "portal-elbe-4f8a2c",
     lots: ["KNG-L1", "HMB-L3"],
   },
@@ -151,6 +214,7 @@ export const SHIPMENTS = [
     destinationPort: "Antwerp",
     shipDate: "2026-12-18",
     contractVolumeKg: 19_200,
+    gradeRequired: "G2",
     portalToken: "portal-scheldt-9b1d7e",
     lots: ["KNG-L2", "HMB-L4"],
   },
@@ -162,6 +226,9 @@ export const LOTS: { ref: string; grade: string; plotRefs: (prefix: string) => s
   { ref: "KNG-L2", grade: "Yirgacheffe natural G1", prefix: "KNG", plotRefs: (p) => range(11, 20, p) },
   { ref: "HMB-L3", grade: "Guji natural G1", prefix: "HMB", plotRefs: (p) => range(1, 10, p) },
   { ref: "HMB-L4", grade: "Guji washed G2", prefix: "HMB", plotRefs: (p) => range(11, 20, p) },
+  // Spare lots, not yet allocated to a contract: the planner's substitutes.
+  { ref: "KNG-L5", grade: "Yirgacheffe washed G1", prefix: "KNG", plotRefs: (p) => range(21, 26, p) },
+  { ref: "HMB-L6", grade: "Guji natural G2", prefix: "HMB", plotRefs: (p) => range(21, 26, p) },
 ];
 
 function range(from: number, to: number, prefix: string): string[] {
