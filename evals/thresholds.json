@@ -1,0 +1,16 @@
+{
+  "identity.precision": 1.0,
+  "identity.recall": 0.9,
+  "intake.csv_field_accuracy": 1.0,
+  "email.rules_field_accuracy": 0.95,
+  "email.gemini_field_accuracy": 0.9,
+  "copilot.citation_hit_rate": 0.9,
+  "copilot.citations_valid": 1.0,
+  "copilot.unsupported_routed": 1.0,
+  "copilot.gemini_citations_valid": 1.0,
+  "planner.constraints_met": 1.0,
+  "planner.optimal_rate": 1.0,
+  "routes.optimal_rate": 0.9,
+  "routes.mean_gap": 0.01,
+  "field_liaison.gemini_accuracy": 0.8
+}

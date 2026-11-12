@@ -1,0 +1,13 @@
+{
+  "identity.precision": 1,
+  "identity.recall": 1,
+  "intake.csv_field_accuracy": 1,
+  "email.rules_field_accuracy": 1,
+  "copilot.citation_hit_rate": 1,
+  "copilot.citations_valid": 1,
+  "copilot.unsupported_routed": 1,
+  "planner.constraints_met": 1,
+  "planner.optimal_rate": 1,
+  "routes.optimal_rate": 0.9,
+  "routes.mean_gap": 0.003973316566044373
+}
