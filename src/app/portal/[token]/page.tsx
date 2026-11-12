@@ -1,11 +1,18 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { connection } from "next/server";
+import { eq } from "drizzle-orm";
 import { Download, ShieldCheck } from "lucide-react";
+import QRCode from "qrcode";
+import { AnswerText } from "@/components/ask-kaffa";
 import { PlotStrip } from "@/components/plot-strip";
+import { PortalAsk } from "@/components/portal-ask";
 import { StatusBadge } from "@/components/status";
 import { Card, CardHeader, buttonClass } from "@/components/ui";
+import { env } from "@/config/env";
 import { getDb } from "@/db/client";
+import { lots } from "@/db/schema";
+import { getQuestions } from "@/services/copilot";
 import { dayMonth, getLedgerStatus, getShipmentByToken, getShipments } from "@/lib/queries";
 
 export const metadata = { title: "Buyer portal", robots: { index: false } };
@@ -30,6 +37,14 @@ async function Portal({ params }: { params: PageProps<"/portal/[token]">["params
   const ledger = await getLedgerStatus(db, shipment.orgId);
   const plots = view.lots.flatMap((l) => l.plots);
   const ready = view.lots.filter((l) => l.state === "ready").length;
+  const codes = await db.select({ id: lots.id, publicCode: lots.publicCode }).from(lots).where(eq(lots.shipmentId, shipment.id));
+  const qr = new Map<string, { url: string; svg: string }>();
+  for (const c of codes) {
+    if (!c.publicCode) continue;
+    const url = `${env().APP_URL}/verify/${c.publicCode}`;
+    qr.set(c.id, { url, svg: await QRCode.toString(url, { type: "svg", margin: 0, color: { dark: "#0e1a14", light: "#0000" } }) });
+  }
+  const answered = (await getQuestions(db, shipment.orgId, shipment.id)).filter((q) => q.status === "answered" && q.channel === "portal");
 
   return (
     <>
@@ -53,7 +68,17 @@ async function Portal({ params }: { params: PageProps<"/portal/[token]">["params
               </h2>
               <span className={`text-[13px] font-medium ${l.state === "ready" ? "text-clear" : "text-ink-faint"}`}>{l.state === "ready" ? "Ready" : "Being resolved"}</span>
             </div>
-            <PlotStrip plots={l.plots} link={false} />
+            <div className="flex items-start gap-5">
+              <div className="min-w-0 flex-1">
+                <PlotStrip plots={l.plots} link={false} />
+              </div>
+              {qr.get(l.id) ? (
+                <a href={qr.get(l.id)!.url} className="flex shrink-0 flex-col items-center gap-1 text-[11px] text-ink-faint hover:text-ink" title="Public verification page for roasters">
+                  <span className="block size-16" dangerouslySetInnerHTML={{ __html: qr.get(l.id)!.svg }} />
+                  Verify
+                </a>
+              ) : null}
+            </div>
             {l.state === "ready" ? (
               <div className="flex flex-wrap gap-2">
                 <a className={buttonClass("primary", "sm")} href={`/api/export/${l.ref}?token=${token}`}>
@@ -80,6 +105,30 @@ async function Portal({ params }: { params: PageProps<"/portal/[token]">["params
             </li>
           ))}
         </ul>
+      </Card>
+
+      <Card aria-labelledby="ask" className="flex flex-col gap-4 p-6">
+        <div>
+          <h2 id="ask" className="text-[15px] font-semibold">
+            Ask about this shipment
+          </h2>
+          <p className="text-sm text-ink-soft">Answers come only from this shipment&apos;s evidence and the regulation, with the source for every sentence. Anything else goes to the exporter.</p>
+        </div>
+        <PortalAsk token={token} />
+        {answered.length ? (
+          <ul className="flex flex-col divide-y divide-hairline border-t border-hairline">
+            {answered
+              .slice(-5)
+              .reverse()
+              .map((q) => (
+                <li key={q.id} className="flex flex-col gap-1.5 py-4">
+                  <p className="text-[13px] text-ink-faint">{q.question}</p>
+                  <AnswerText text={q.answer ?? ""} />
+                  {q.citations.length ? <p className="text-[12px] text-ink-faint">Sources: {q.citations.map((c) => c.label).join("; ")}</p> : <p className="text-[12px] text-ink-faint">Answered by the exporter</p>}
+                </li>
+              ))}
+          </ul>
+        ) : null}
       </Card>
 
       <Card className="flex gap-4 p-6">

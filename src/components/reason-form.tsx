@@ -17,8 +17,11 @@ export function ReasonForm({
   submit,
   pendingLabel,
   tone = "primary",
+  field = "plotRef",
 }: {
   plotRef: string;
+  /** Name of the hidden field carrying the subject's id. */
+  field?: string;
   action: (prev: ActionState, form: FormData) => Promise<ActionState>;
   title: string;
   help: string;
@@ -31,7 +34,7 @@ export function ReasonForm({
   const id = useId();
   return (
     <form action={formAction} className="flex flex-col gap-3">
-      <input type="hidden" name="plotRef" value={plotRef} />
+      <input type="hidden" name={field} value={plotRef} />
       <label htmlFor={id} className="text-[15px] font-medium">
         {title}
       </label>

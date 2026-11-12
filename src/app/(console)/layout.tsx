@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { and, eq, sql } from "drizzle-orm";
+import { AskKaffa } from "@/components/ask-kaffa";
 import { Sidebar, SidebarSkeleton } from "@/components/sidebar";
 import { approvals, intakeRows } from "@/db/schema";
 import { consoleContext } from "@/lib/console";
@@ -21,6 +22,7 @@ export default function ConsoleLayout({ children }: LayoutProps<"/">) {
         <SidebarWithCounts />
       </Suspense>
       <main className="mx-auto w-full max-w-[1240px] px-4 pt-6 pb-16 sm:px-8 lg:pt-12 lg:pr-12 lg:pl-[120px]">{children}</main>
+      <AskKaffa />
     </div>
   );
 }

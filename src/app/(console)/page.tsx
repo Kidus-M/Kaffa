@@ -19,6 +19,35 @@ import {
   getShipments,
   type ShipmentView,
 } from "@/lib/queries";
+import { computeBrief } from "@/services/brief";
+
+/** The three decisions that matter most today. */
+async function Brief() {
+  const { db, orgId } = await consoleContext();
+  const items = await computeBrief(db, orgId);
+  if (!items.length) return null;
+  return (
+    <section aria-labelledby="brief" className="flex flex-col gap-3">
+      <h2 id="brief" className="text-[19px] font-medium tracking-[-0.015em]">
+        This morning&apos;s decisions
+      </h2>
+      <ol className="grid gap-3 lg:grid-cols-3">
+        {items.map((b, i) => (
+          <li key={b.title}>
+            <Link href={b.href} className="group flex h-full flex-col gap-2 rounded-[var(--radius-card)] bg-surface p-5 shadow-[var(--shadow-card)] transition-shadow hover:shadow-[var(--shadow-float)]">
+              <span className="flex items-center justify-between text-[13px] text-ink-faint">
+                <span className="tabular-nums">{i + 1}</span>
+                <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </span>
+              <span className="text-[15px] font-medium">{b.title}</span>
+              <span className="text-sm leading-relaxed text-ink-soft">{b.detail}</span>
+            </Link>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
 
 export default function OverviewPage() {
   return (
@@ -30,6 +59,9 @@ export default function OverviewPage() {
       />
       <Suspense fallback={<div className="h-64 animate-pulse rounded-[var(--radius-card)] bg-sunken" />}>
         <Headline />
+      </Suspense>
+      <Suspense fallback={<div className="h-40 animate-pulse rounded-[var(--radius-card)] bg-sunken" />}>
+        <Brief />
       </Suspense>
       <Suspense fallback={<div className="h-80 animate-pulse rounded-[var(--radius-card)] bg-sunken" />}>
         <Shipments />
@@ -73,7 +105,7 @@ async function Headline() {
               <span className="text-ink-faint"> of {lots.length}</span>
             </p>
           </div>
-          <p className="max-w-64 text-sm text-ink-soft">A lot ships when every plot is clear or accepted, and no field request is open.</p>
+          <p className="max-w-64 text-sm text-ink-soft">A lot ships when every plot is clear or accepted, no field request is open, and its volumes add up.</p>
         </div>
         <div className="flex flex-col gap-3">
           <div className="flex h-2.5 overflow-hidden rounded-full bg-sunken" role="img" aria-label={SEGMENTS.map((s) => `${counts[s.key]} ${s.label.toLowerCase()}`).join(", ")}>
@@ -142,7 +174,10 @@ async function Shipments() {
 function ShipmentCard({ s }: { s: ShipmentView }) {
   const pct = Math.round(s.forecast.pOnTime * 100);
   const blocked = s.lots.flatMap((l) => l.plots).filter((p) => p.status === "blocked").length;
-  const tone = blocked ? "text-blocked" : pct >= 80 ? "text-clear" : pct >= 50 ? "text-review" : "text-blocked";
+  const flagged = s.lots.reduce((t, l) => t + l.openFlags, 0);
+  // Blocked plots and supply chain flags need the exporter's decision, not field work, so a probability would mislead.
+  const decisions = blocked + flagged;
+  const tone = decisions ? "text-blocked" : pct >= 80 ? "text-clear" : pct >= 50 ? "text-review" : "text-blocked";
   return (
     <Card as="article" className="flex flex-col">
       <div className="flex items-start justify-between gap-4 p-6 pb-5">
@@ -155,8 +190,8 @@ function ShipmentCard({ s }: { s: ShipmentView }) {
           </p>
         </div>
         <div className="shrink-0 text-right">
-          <p className={`text-[28px] leading-none font-light tracking-[-0.03em] tabular-nums ${tone}`}>{blocked ? blocked : `${pct}%`}</p>
-          <p className="mt-1 text-[13px] text-ink-soft">{blocked ? (blocked === 1 ? "plot blocked" : "plots blocked") : "on-time chance"}</p>
+          <p className={`text-[28px] leading-none font-light tracking-[-0.03em] tabular-nums ${tone}`}>{decisions ? decisions : `${pct}%`}</p>
+          <p className="mt-1 text-[13px] text-ink-soft">{decisions ? (decisions === 1 ? "decision needed" : "decisions needed") : "on-time chance"}</p>
         </div>
       </div>
       <ul className="flex flex-col divide-y divide-hairline border-t border-hairline">
@@ -166,7 +201,13 @@ function ShipmentCard({ s }: { s: ShipmentView }) {
               <span>
                 <span className="font-medium">{l.ref}</span> <span className="text-ink-soft">{l.grade}, {(l.quantityKg / 1000).toFixed(1)} t</span>
               </span>
-              <span className={`text-[13px] font-medium ${l.state === "ready" ? "text-clear" : "text-ink-faint"}`}>{l.state === "ready" ? "Ready" : "Held"}</span>
+              {l.openFlags ? (
+                <Link href={`/supply-chain?lot=${l.ref}`} className="text-[13px] font-medium text-blocked hover:underline">
+                  Held, {l.openFlags} volume flag{l.openFlags > 1 ? "s" : ""}
+                </Link>
+              ) : (
+                <span className={`text-[13px] font-medium ${l.state === "ready" ? "text-clear" : "text-ink-faint"}`}>{l.state === "ready" ? "Ready" : "Held"}</span>
+              )}
             </div>
             <PlotStrip plots={l.plots} animate />
           </li>
@@ -174,8 +215,8 @@ function ShipmentCard({ s }: { s: ShipmentView }) {
       </ul>
       <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-hairline px-6 py-4 text-[13px] text-ink-soft">
         <span>
-          {blocked
-            ? "Blocked plots hold their lots until removed or disproved."
+          {decisions
+            ? `${[blocked ? `${blocked} blocked plot${blocked > 1 ? "s" : ""}` : "", flagged ? `${flagged} supply chain flag${flagged > 1 ? "s" : ""}` : ""].filter(Boolean).join(" and ")} hold this shipment until you decide.`
             : `Likely ready ${dayMonth(s.forecast.p50)}, at worst ${dayMonth(s.forecast.p90)}.`}
         </span>
         <Link href={`/portal/${s.portalToken}`} className="inline-flex items-center gap-1 font-medium text-ink hover:text-leaf">

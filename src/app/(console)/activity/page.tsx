@@ -6,7 +6,16 @@ import { getActivity } from "@/lib/queries";
 
 export const metadata = { title: "Agent activity" };
 
-const AGENT_NAME: Record<string, string> = { geo_analyst: "Geo analyst", field_liaison: "Field liaison", intake: "Intake" };
+const AGENT_NAME: Record<string, string> = {
+  geo_analyst: "Geo analyst",
+  field_liaison: "Field liaison",
+  intake: "Intake",
+  field_planner: "Field planner",
+  supply_chain_auditor: "Supply chain auditor",
+  shipment_planner: "Shipment planner",
+  buyer_liaison: "Buyer liaison",
+  copilot: "Ask Kaffa",
+};
 const STEP = {
   model: { label: "Gemini", icon: Cpu },
   tool: { label: "Tool", icon: Wrench },

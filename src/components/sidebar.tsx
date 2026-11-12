@@ -8,19 +8,22 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ComponentType } from "react";
-import { Activity, ChevronDown, FileUp, Inbox, LayoutGrid, Map, Menu, RotateCcw, Satellite, Users, X } from "lucide-react";
+import { Activity, ChevronDown, FileUp, Inbox, LayoutGrid, Map, Menu, Network, RotateCcw, Satellite, Ship, SlidersHorizontal, Users, X } from "lucide-react";
 import { resetDemo } from "@/app/(console)/actions";
 
 type Counts = { approvals: number; intake: number } | null;
-type Sources = Record<"satellite" | "gemini" | "telegram" | "workflows" | "database", string>;
+type Sources = Record<"satellite" | "gemini" | "telegram" | "workflows" | "database" | "roads" | "weather" | "inbox" | "outbound", string>;
 
 const NAV: { href: string; label: string; icon: ComponentType<{ className?: string; strokeWidth?: number }>; count?: "approvals" | "intake" }[] = [
   { href: "/", label: "Overview", icon: LayoutGrid },
+  { href: "/shipments", label: "Shipments", icon: Ship },
   { href: "/plots", label: "Plots", icon: Map },
+  { href: "/supply-chain", label: "Supply chain", icon: Network },
   { href: "/intake", label: "Intake", icon: FileUp, count: "intake" },
   { href: "/field-agents", label: "Field agents", icon: Users },
   { href: "/approvals", label: "Approvals", icon: Inbox, count: "approvals" },
   { href: "/activity", label: "Agent activity", icon: Activity },
+  { href: "/settings", label: "Settings", icon: SlidersHorizontal },
 ];
 
 const SOURCE_LABEL: Record<keyof Sources, string> = {
@@ -29,8 +32,12 @@ const SOURCE_LABEL: Record<keyof Sources, string> = {
   telegram: "Telegram",
   workflows: "Workflows",
   database: "Database",
+  roads: "Road times",
+  weather: "Weather",
+  inbox: "Buyer inbox",
+  outbound: "Outbound email",
 };
-const LIVE = new Set(["live", "durable", "neon"]);
+const LIVE = new Set(["live", "durable", "neon", "open-meteo"]);
 
 function KaffaMark({ className = "size-[18px] shrink-0" }: { className?: string }) {
   // A coffee bean: an oval split by a curved seam.

@@ -4,9 +4,13 @@ import { and, desc, eq } from "drizzle-orm";
 import { IntakeRowForm } from "@/components/intake-row-form";
 import { IntakeUpload } from "@/components/intake-upload";
 import { Card, CardHeader, EmptyState, PageHeader } from "@/components/ui";
-import { cooperatives, intakeBatches, intakeRows } from "@/db/schema";
+import { Mail, Users } from "lucide-react";
+import { ActionButton } from "@/components/action-button";
+import { approvals, cooperatives, intakeBatches, intakeRows } from "@/db/schema";
 import { consoleContext } from "@/lib/console";
 import { integrationStatus } from "@/services/deps";
+import { getInboundEmails } from "@/services/email-intake";
+import { checkInboxAction } from "../actions";
 
 export const metadata = { title: "Intake" };
 
@@ -15,7 +19,7 @@ export default function IntakePage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Intake"
-        description="Upload a cooperative's register. Confident rows become plots and go through the same checks as every plot. Rows the intake agent is unsure about wait here for you."
+        description="Registers, contracts and buyer emails come in here. Confident rows become plots, farmers already on record under another spelling are caught, and anything uncertain waits for you."
       />
       <Suspense fallback={<div className="h-80 animate-pulse rounded-[var(--radius-card)] bg-sunken" />}>
         <IntakeBody />
@@ -34,6 +38,9 @@ async function IntakeBody() {
     .where(and(eq(intakeRows.orgId, orgId), eq(intakeRows.status, "pending")))
     .orderBy(desc(intakeRows.createdAt), intakeRows.idx);
   const batches = await db.select().from(intakeBatches).where(eq(intakeBatches.orgId, orgId)).orderBy(desc(intakeBatches.createdAt)).limit(8);
+  const emails = await getInboundEmails(db, orgId);
+  const merges = await db.select({ id: approvals.id }).from(approvals).where(and(eq(approvals.orgId, orgId), eq(approvals.kind, "merge_farmers"), eq(approvals.status, "pending")));
+  const inbox = integrationStatus().inbox;
 
   return (
     <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
@@ -56,6 +63,57 @@ async function IntakeBody() {
             ))
           )}
         </section>
+
+        {merges.length ? (
+          <Link href="/approvals" className="flex items-center gap-3 rounded-[var(--radius-card)] bg-review-wash px-5 py-4 text-sm transition-colors hover:brightness-[0.98]">
+            <Users className="size-4 shrink-0 text-review" />
+            <span>
+              <span className="font-medium">
+                {merges.length} possible duplicate farmer{merges.length > 1 ? "s" : ""}
+              </span>{" "}
+              <span className="text-ink-soft">matched across Amharic and Latin spellings. Confirm or reject in Approvals.</span>
+            </span>
+          </Link>
+        ) : null}
+
+        <Card aria-labelledby="inbox">
+          <div className="flex flex-col gap-3 px-6 pt-5 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 id="inbox" className="text-[15px] font-semibold">
+                Buyer inbox
+              </h2>
+              <p className="text-[13px] text-ink-soft">
+                {inbox === "live" ? "Reads emails labelled for Kaffa in the exporter's Gmail." : "Gmail is not connected, so this reads three recorded synthetic emails, one of them an injection attempt."}
+              </p>
+            </div>
+            <ActionButton action={checkInboxAction} label={inbox === "live" ? "Check inbox" : "Load sample inbox"} pendingLabel="Reading" icon={<Mail className="size-4" />} />
+          </div>
+          {emails.length ? (
+            <ul className="flex flex-col divide-y divide-hairline px-6 pt-2 pb-3">
+              {emails.map((e) => (
+                <li key={e.id} className="flex flex-col gap-1 py-3.5 text-sm">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[12px] font-medium ${
+                        e.kind === "contract" ? "bg-leaf-wash text-leaf-ink" : e.kind === "question" ? "bg-review-wash text-review" : "bg-sunken text-ink-soft"
+                      }`}
+                    >
+                      {e.kind === "contract" ? "Contract" : e.kind === "question" ? "Question" : "Ignored"}
+                    </span>
+                    <span className="font-medium">{e.subject}</span>
+                  </span>
+                  <span className="text-[13px] text-ink-faint">
+                    {e.fromAddress.replace(/<.*>/, "").trim()} · read by {(e.extracted as { mode?: string } | null)?.mode === "gemini" ? "Gemini" : "rules"}
+                    {e.simulated ? " · sample" : ""}
+                  </span>
+                  <span className="text-ink-soft">{e.outcome}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="px-6 pt-3 pb-6 text-sm text-ink-soft">No emails read yet.</p>
+          )}
+        </Card>
       </div>
 
       <Card aria-labelledby="batches" className="xl:sticky xl:top-12">
