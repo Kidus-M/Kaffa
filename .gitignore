@@ -49,3 +49,6 @@ next-env.d.ts
 /evals/out
 
 /.claude
+
+.vercel
+.env*

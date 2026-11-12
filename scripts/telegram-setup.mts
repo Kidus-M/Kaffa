@@ -1,13 +1,14 @@
 /**
  * Connects the Telegram bot to a deployment: registers the webhook (with its secret) and
  * puts the field Mini App on the bot's menu button. Reads TELEGRAM_BOT_TOKEN,
- * TELEGRAM_WEBHOOK_SECRET and APP_URL from the environment, for example:
+ * and TELEGRAM_WEBHOOK_SECRET from the environment; the deployment's URL is the argument
+ * (or APP_URL):
  *
- *   node --env-file=.env.production.local --import tsx scripts/telegram-setup.mts
+ *   node --env-file=.env.local --import tsx scripts/telegram-setup.mts https://your-app.vercel.app
  */
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
-const appUrl = process.env.APP_URL?.replace(/\/$/, "");
+const appUrl = (process.argv[2] ?? process.env.APP_URL)?.replace(/\/$/, "");
 
 if (!token || !secret || !appUrl) {
   console.error("Set TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET and APP_URL first.");

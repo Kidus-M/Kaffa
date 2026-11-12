@@ -97,16 +97,37 @@ Sets that need Gemini run when `GEMINI_API_KEY` is set. CI (`.github/workflows/c
 
 ## Deploy
 
-1. Create a Neon database (free) and set `DATABASE_URL`, then run `npm run db:migrate` and `npm run db:seed`.
-2. Deploy to Vercel (Hobby). `vercel.json` schedules the daily run at 06:00 Addis Ababa time; set `CRON_SECRET`.
-3. Connect Inngest (free) and set `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY`.
-4. Create a bot with @BotFather, set `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` and a random `TELEGRAM_WEBHOOK_SECRET`, then register the webhook:
+Kaffa runs on Vercel (Hobby) with Neon Postgres from the Vercel Marketplace, both on free plans.
+
+1. Link the project and add Neon. The integration sets `DATABASE_URL` for every environment:
 
    ```bash
-   curl "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" -d "url=$APP_URL/api/telegram/webhook" -d "secret_token=$TELEGRAM_WEBHOOK_SECRET"
+   vercel link --project kaffa
+   vercel integration add neon --name kaffa-db --meta region=fra1 --no-env-pull
    ```
 
-   In @BotFather, set the bot's Mini App URL to `$APP_URL/field`.
+2. Migrate and load the synthetic demo data, using the production variables in a file that stays out of git:
+
+   ```bash
+   vercel env pull .env.production.local --environment=production
+   node --env-file=.env.production.local --import tsx scripts/migrate.mts
+   node --env-file=.env.production.local --import tsx scripts/seed.mts
+   ```
+
+3. Copy your keys from `.env.local` into production. The script prints key names only, and the URL becomes `APP_URL`:
+
+   ```bash
+   node scripts/push-env.mjs https://your-app.vercel.app
+   ```
+
+   Then deploy with `vercel deploy --prod`. Connecting the GitHub repository makes every push to `main` deploy.
+4. Connect Telegram. Create a bot with @BotFather and put its token in `.env.local`, run step 3 again, then register the webhook and the Mini App menu button:
+
+   ```bash
+   node --env-file=.env.local --import tsx scripts/telegram-setup.mts https://your-app.vercel.app
+   ```
+
+`vercel.json` schedules the daily run at 06:00 Addis Ababa time. Without Inngest keys, the cron endpoint does the whole morning run itself. With `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY`, chases become durable workflows that wait days for replies.
 
 Step-by-step instructions for every key are in [docs/keys-setup.md](docs/keys-setup.md).
 

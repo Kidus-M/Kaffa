@@ -1,0 +1,10 @@
+.env*
+!.env.example
+.data
+.next
+node_modules
+evals/out
+.claude
+.superpowers
+test-results
+playwright-report
