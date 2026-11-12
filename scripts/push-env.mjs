@@ -33,10 +33,20 @@ for (const line of readFileSync(".env.local", "utf8").split(/\r?\n/)) {
 local.APP_URL = appUrl.replace(/\/$/, "");
 
 const vercel = process.platform === "win32" ? "vercel.cmd" : "vercel";
+const shell = process.platform === "win32";
+
+try {
+  const who = execFileSync(vercel, ["whoami"], { stdio: ["ignore", "pipe", "pipe"], shell }).toString().trim().split(/\r?\n/).at(-1);
+  console.log(`Vercel account: ${who}`);
+} catch {
+  console.error("The Vercel CLI is not logged in here. Run `vercel login`, then run this script again.");
+  process.exit(1);
+}
+
 for (const key of [...KEYS, "APP_URL"]) {
   const value = local[key];
   if (!value) continue;
-  execFileSync(vercel, ["env", "add", key, "production", "--force"], { input: value, stdio: ["pipe", "ignore", "inherit"], shell: process.platform === "win32" });
+  execFileSync(vercel, ["env", "add", key, "--environment", "production", "--force", "--yes"], { input: value, stdio: ["pipe", "ignore", "inherit"], shell });
   console.log(`set ${key}`);
 }
 console.log("Done. Redeploy for the new values to take effect: vercel deploy --prod");
